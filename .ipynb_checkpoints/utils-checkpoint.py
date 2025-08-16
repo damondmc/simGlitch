@@ -14,9 +14,9 @@ def gen_amplitude_params(nSample, phi_range=(0, 2*np.pi), psi_range=(-np.pi/4, n
     - params (np.ndarray): Array of shape (nSample, 3) with columns [phi, psi, cosi].
     """
     print("Generating amplitude parameters.")
-    phi_arr = np.random.uniform(phi_range[0], phi_range[1], nSample)
-    psi_arr = np.random.uniform(psi_range[0], psi_range[1], nSample)
-    cosi_arr = np.random.uniform(cosi_range[0], cosi_range[1], nSample)
+    phi_arr = np.random.uniform(0, 2*np.pi, nSample)
+    psi_arr = np.random.uniform(-np.pi/4, np.pi/4, nSample)
+    cosi_arr = np.random.uniform(-1, 1, nSample)
     return np.column_stack((phi_arr, psi_arr, cosi_arr))
 
 def gen_sky_location_params(nSample, alpha_range=(0, 2*np.pi), sinDelta_range=(-1, 1)):
@@ -66,45 +66,39 @@ def gen_frequency_params(nSample, n, freq_ranges):
 
 
 
-def gen_glitch_params(nSample, tstart, Tdata, n_glitches_range=(0, 2), 
-                     df_permanent_range=(1e-3, 1e-2), df_tau_range=(1e-2, 1e-1), 
-                     df1_permanent_range=(-1e-10, -1e-11), df1_tau_range=(-1e-10, -1e-11), 
-                     tau_range=(10*86400, 30*86400)):
+def gen_glitch_params(n, tstart, Tdata, freq, f1dot, n_glitches_range=(0, 2), 
+                     delta_f_over_f_range=(1e-9, 1e-6), delta_f1dot_over_f1dot_range=(-1e-4, -1e-3), 
+                     Q_range=(0, 1), tau_range=(10*86400, 200*86400)):
     """
-    Generate glitch parameters for a given number of random samples.
-
-    Parameters:
-    - nSample (int): Number of random samples.
-    - tstart (float): Start time of observation (GPS seconds).
-    - Tdata (float): Duration of observation (seconds).
-    - n_glitches_range (tuple): Min and max number of glitches per signal (default: 0 to 2).
-    - df_permanent_range, df_tau_range, df1_permanent_range, df1_tau_range (tuple): Min and max for glitch parameters.
-    - tau_range (tuple): Min and max for glitch decay time (seconds, default: 10 to 30 days).
-
-    Returns:
-    - glitch_params (list): List of tuples (tglitch, df_permanent, df_tau, df1_permanent, df1_tau, tau) for each sample.
+    Generate glitch parameters for n pulsars, each with a specified number of glitches.
+    Parameters are drawn based on observables delta_f/f, delta_f1dot/f1dot, and Q.
     """
     print("Generating glitch parameters.")
     glitch_params = []
     
-    # Generate random number of glitches for each sample
-    n_glitches = np.random.randint(n_glitches_range[0], n_glitches_range[1] + 1, nSample)
+    freq = np.atleast_1d(freq)
+    f1dot = np.atleast_1d(f1dot)
     
-    for i in range(nSample):
-        n = n_glitches[i]
-        if n == 0:
+    n_glitches = np.random.randint(n_glitches_range[0], n_glitches_range[1] + 1, n)
+    
+    for i in range(n):
+        m = n_glitches[i]
+        if m == 0:
             glitch_params.append(([], [], [], [], [], []))
             continue
         
-        # Generate glitch times uniformly within observation window
-        tglitch = np.random.uniform(tstart, tstart + Tdata, n)
-        df_permanent = np.random.uniform(df_permanent_range[0], df_permanent_range[1], n)
-        df_tau = np.random.uniform(df_tau_range[0], df_tau_range[1], n)
-        df1_permanent = np.random.uniform(df1_permanent_range[0], df1_permanent_range[1], n)
-        df1_tau = np.random.uniform(df1_tau_range[0], df1_tau_range[1], n)
-        tau = np.random.uniform(tau_range[0], tau_range[1], n)
+        tglitch = np.random.uniform(tstart, tstart + Tdata, m)
+        delta_f_over_f = np.random.uniform(delta_f_over_f_range[0], delta_f_over_f_range[1], m)
+        delta_f = delta_f_over_f * freq[i]
+        Q = np.random.uniform(Q_range[0], Q_range[1], m)
+        delta_f_t = Q * delta_f 
+        delta_f_p = (1-Q) * delta_f 
+        delta_f1dot_over_f1dot = np.random.uniform(delta_f1dot_over_f1dot_range[0], 
+                                                  delta_f1dot_over_f1dot_range[1], m)
+        delta_f1dot_p = delta_f1dot_over_f1dot * f1dot[i]
+        tau = np.random.uniform(tau_range[0], tau_range[1], m)
         
-        glitch_params.append((tglitch.tolist(), df_permanent.tolist(), df_tau.tolist(), 
-                             df1_permanent.tolist(), df1_tau.tolist(), tau.tolist()))
+        glitch_params.append((tglitch.tolist(), delta_f_p.tolist(), delta_f_t.tolist(), 
+                             delta_f1dot_p.tolist(), tau.tolist()))
     
     return glitch_params
