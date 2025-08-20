@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 def gen_amplitude_params(nSample, phi_range=(0, 2*np.pi), psi_range=(-np.pi/4, np.pi/4), cosi_range=(-1, 1)):
     """
@@ -66,7 +67,7 @@ def gen_frequency_params(nSample, n, freq_ranges):
 
 
 
-def gen_glitch_params(n, tstart, Tdata, freq, f1dot, n_glitches_range=(0, 2), 
+def gen_glitch_params(n, m, tstart, Tdata, freq, f1dot, 
                      delta_f_over_f_range=(1e-9, 1e-6), delta_f1dot_over_f1dot_range=(-1e-4, -1e-3), 
                      Q_range=(0, 1), tau_range=(10*86400, 200*86400)):
     """
@@ -79,12 +80,10 @@ def gen_glitch_params(n, tstart, Tdata, freq, f1dot, n_glitches_range=(0, 2),
     freq = np.atleast_1d(freq)
     f1dot = np.atleast_1d(f1dot)
     
-    n_glitches = np.random.randint(n_glitches_range[0], n_glitches_range[1] + 1, n)
     
     for i in range(n):
-        m = n_glitches[i]
         if m == 0:
-            glitch_params.append(([], [], [], [], [], []))
+            glitch_params.append([])
             continue
         
         tglitch = np.random.uniform(tstart, tstart + Tdata, m)
@@ -93,12 +92,60 @@ def gen_glitch_params(n, tstart, Tdata, freq, f1dot, n_glitches_range=(0, 2),
         Q = np.random.uniform(Q_range[0], Q_range[1], m)
         delta_f_t = Q * delta_f 
         delta_f_p = (1-Q) * delta_f 
-        delta_f1dot_over_f1dot = np.random.uniform(delta_f1dot_over_f1dot_range[0], 
-                                                  delta_f1dot_over_f1dot_range[1], m)
+        delta_f1dot_over_f1dot = np.random.uniform(delta_f1dot_over_f1dot_range[0], delta_f1dot_over_f1dot_range[1], m)
         delta_f1dot_p = delta_f1dot_over_f1dot * f1dot[i]
         tau = np.random.uniform(tau_range[0], tau_range[1], m)
         
-        glitch_params.append((tglitch.tolist(), delta_f_p.tolist(), delta_f_t.tolist(), 
-                             delta_f1dot_p.tolist(), tau.tolist()))
+        # Create list of m glitch parameter sets for this pulsar
+        glitch_sets = [
+            [tglitch[j], delta_f_p[j], delta_f_t[j], delta_f1dot_p[j], tau[j], Q[i]]
+            for j in range(m)
+        ]
+        glitch_params.append(glitch_sets)
     
     return glitch_params
+
+def save_params(n, m, freq_params, amp_params, sky_params, glitch_params, out_dir, filename='params.csv'):
+    """
+    Save parameters to a CSV file with n*m rows, combining source parameters with glitch parameters.
+
+    Parameters:
+    n : int
+        Number of signals/sources.
+    m : int
+        Number of glitches per signal.
+    freq_params : ndarray
+        Frequency parameters array of shape (n, 5).
+    amp_params : ndarray
+        Amplitude parameters array of shape (n, 3) containing [phi0, psi, cosi].
+    sky_params : ndarray
+        Sky parameters array of shape (n, 2) containing [alpha, delta].
+    glitch_params : list
+        List of length n, where each element is a list of m glitch parameter sets.
+        Each glitch parameter set contains [tglitch, df_permanent, df_tau, df1_permanent, df1_tau, tau].
+    out_dir : str
+        Output directory path for the CSV file.
+    filename : str
+        Name of the output CSV file (default: 'params.csv').
+    """
+
+    # Prepare data for CSV
+    data = np.zeros((n*m, 2 + 5 + 3 + 2 + 6))  # n-th signal, m-th glitch, freq_params (5), amp_params (3), sky_params (2), glitch_params (6)
+
+    # Fill in the data
+    for i in range(n):
+        for j in range(m):
+            row_idx = i * m + j
+            data[row_idx, 0] = i  # 1-based indexing for n-th signal
+            data[row_idx, 1] = j  # 1-based indexing for m-th glitch
+            data[row_idx, 2:7] = freq_params[i]  # f0 to f4
+            data[row_idx, 7:10] = amp_params[i]         # phi0, psi, cosi
+            data[row_idx, 10:12] = sky_params[i]       # alpha, delta
+            data[row_idx, 12:18] = glitch_params[i][j]  # tglitch, df_permanent, df_tau, df1_permanent, df1_tau, tau
+
+    # Define column headers
+    headers = ['n_th_signal', 'm_th_glitch', 'f0', 'f1', 'f2', 'f3', 'f4', 'phi0', 'psi', 'cosi', 'alpha', 'delta',
+               'tglitch', 'df_permanent', 'df_tau', 'df1_permanent', 'df1_tau', 'tau']
+
+    # Save to CSV
+    np.savetxt(os.path.join(out_dir, filename), data, delimiter=',', header=','.join(headers), comments='')

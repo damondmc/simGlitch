@@ -5,12 +5,11 @@ from tqdm import tqdm
 import time
 import multiprocessing as mp
 import os
-from utils import gen_amplitude_params, gen_sky_location_params, gen_frequency_params, gen_glitch_params
+from utils import *
 
 
 # Corrected waveform function
-def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, tglitch, delta_f_p, delta_f_t, 
-             delta_f1dot_p, tau):
+def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm):
     """
     Generate GW waveform for a pulsar with glitches, ensuring h0 ∝ sqrt(|f1dot| / f^5).
     
@@ -30,13 +29,19 @@ def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, tglitch, delta_f_p, del
     Returns:
     - wf (function): Waveform function returning (dphi, ap, ax).
     """
-    if not all(len(lst) == len(tglitch) for lst in [delta_f_p, delta_f_t, delta_f1dot_p, tau]):
-        raise ValueError("All glitch parameter lists must have the same length")
     
+    # Validate glitch parameters
+    for gp in glitch_params_norm:
+        if len(gp) != 6:
+            raise ValueError("Each glitch parameter set must contain 6 elements: "
+                             "[tglitch, df_permanent, df_tau, df1_permanent, df1_tau, tau]")
+    if f1dot == 0:
+        raise ValueError("F1dot is zero.")
+
     # Initial amplitude scaling factor
     f0 = freq
     f1dot0 = f1dot
-    h0_scale = h0 / np.sqrt(np.abs(f1dot0) / f0**5) if f1dot0 != 0 else h0 # make sure we wont run into f1dot ==0 case
+    h0_scale = h0 / np.sqrt(np.abs(f1dot0) / f0**5)
     
     def wf(dt):
         # Phase evolution
@@ -48,19 +53,22 @@ def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, tglitch, delta_f_p, del
         f1dot_eff = f1dot0
         
         # Apply glitch contributions
-        for i in range(len(tglitch)):
-            if dt > tglitch[i]:
-                delta_t = dt - tglitch[i]
-                dphi += delta_f_p[i] * delta_t
-                dphi += delta_f_t[i] * np.exp(-delta_t / tau[i]) * delta_t
-                dphi += delta_f1dot_p[i] * 0.5 * delta_t**2
+        for gp in glitch_params_norm:
+            tglitch, df_p, df_t, df1_p, df1_t, tau = gp
+            if dt > tglitch:
+                delta_t = dt - tglitch
+                dphi += df_p * delta_t
+                dphi += df_t * np.exp(-delta_t / tau) * delta_t
+                dphi += df1_p * 0.5 * delta_t**2
                 
                 # Update effective frequency and f1dot
-                f_eff += delta_f_p[i] + delta_f_t[i] * np.exp(-delta_t / tau[i])
-                f1dot_eff += delta_f1dot_p[i] - delta_f_t[i]/ tau[i] * np.exp(-delta_t / tau[i])
+                f_eff += df_p + df_t * np.exp(-delta_t / tau)
+                f1dot_eff += df1_p - df_t / tau * np.exp(-delta_t / tau)
         
         # Scale h0 based on effective f and f1dot
-        h0_t = h0_scale * np.sqrt(np.abs(f1dot_eff) / f_eff**5) if f1dot_eff != 0 else h0
+        if f1dot_eff == 0:
+            raise ValueError("Effective f1dot is zero.")
+        h0_t = h0_scale * np.sqrt(np.abs(f1dot_eff) / f_eff**5) 
         
         dphi = lal.TWOPI * dphi
         ap = h0_t * (1.0 + cosi**2) / 2.0
@@ -111,19 +119,21 @@ def simulate_signal(signal_params):
     signal_idx = signal_params['signal_idx']
     
     freq, f1dot, f2dot, f3dot, f4dot = freq_params
-    tglitch, df_permanent, df_tau, df1_permanent, df1_tau, tau = glitch_params
     
-    tglitch_norm = [t - tref for t in tglitch]
+    # Normalize tglitch relative to tref
+    glitch_params_norm = [
+        [gp[0] - tref, gp[1], gp[2], gp[3], gp[4], gp[5]]
+        for gp in glitch_params
+    ]
     
-    wf = waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, 
-                  tglitch_norm, df_permanent, df_tau, df1_permanent, df1_tau, tau)
+    wf = waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm)
     
-    signal_out_dir = os.path.join(out_dir, f"simCW_{signal_idx}")
+    signal_out_dir = os.path.join(out_dir, f"simCW{signal_idx}")
     os.makedirs(signal_out_dir, exist_ok=True)
     
     S = simulateCW.CWSimulator(tref, tstart, Tdata, wf, dt_wf, phi0, psi, alpha, delta, detector)
     
-    for file, j, N in S.write_sft_files(fmax=fmax, Tsft=Tsft, comment=f"simCW_{signal_idx}", out_dir=signal_out_dir):
+    for file, j, N in S.write_sft_files(fmax=fmax, Tsft=Tsft, comment=f"simCW{signal_idx}", out_dir=signal_out_dir):
         pass
 
 # Updated main function with strict parameter validation
@@ -185,6 +195,7 @@ def main(params):
     alpha = params.get('alpha')
     delta = params.get('delta')
     seed = params.get('seed')
+    n_cpu = params.get('n_cpu')
     
     # Validate parameters
     if freq_order > 4:
@@ -220,8 +231,7 @@ def main(params):
     
     # Generate glitch parameters
     glitch_params = gen_glitch_params(
-        n, tstart, Tdata, freq_params[:, 0], freq_params[:, 1],
-        n_glitches_range=(m, m),
+        n, m, tstart, Tdata, freq_params[:, 0], freq_params[:, 1],
         delta_f_over_f_range=glitch_params_ranges['delta_f_over_f'],
         delta_f1dot_over_f1dot_range=glitch_params_ranges['delta_f1dot_over_f1dot'],
         Q_range=glitch_params_ranges['Q'],
@@ -232,17 +242,9 @@ def main(params):
     freq_params_padded = np.zeros((n, 5))
     freq_params_padded[:, :freq_order+1] = freq_params
     
-    # Save parameters to .npz file
-    np.savez(os.path.join(out_dir, 'params.npz'),
-             freq_params=freq_params_padded,
-             phi0=amp_params[:, 0], psi=amp_params[:, 1], cosi=amp_params[:, 2],
-             alpha=sky_params[:, 0], delta=sky_params[:, 1],
-             tglitch=[params[0] for params in glitch_params],
-             df_permanent=[params[1] for params in glitch_params],
-             df_tau=[params[2] for params in glitch_params],
-             df1_permanent=[params[3] for params in glitch_params],
-             df1_tau=[params[4] for params in glitch_params],
-             tau=[params[5] for params in glitch_params])
+    # Save parameters to .cvs file
+    save_params(n, m, freq_params_padded, amp_params, sky_params, glitch_params, out_dir, filename='signal_glitch_params.txt')
+  
     
     # Create list of dictionaries for each signal
     sim_args = [
@@ -268,7 +270,7 @@ def main(params):
     ]
     
     # Simulate signals in parallel
-    with mp.Pool(processes=mp.cpu_count()) as pool:
+    with mp.Pool(processes=n_cpu) as pool:
         list(tqdm(pool.imap_unordered(simulate_signal, sim_args), 
                   total=n, desc="Simulating signals"))
     
@@ -276,28 +278,31 @@ def main(params):
 
 # Example usage
 if __name__ == "__main__":
+    n_cpu = 4
+    
     sim_params = {
-        'n': 5,
-        'm': 2,
+        'n': 2,
+        'm': 5,
         'h0': 1e-24,
         'tstart': 1368970000,
-        'Tdata': 240 * 86400,
+        'Tdata': 120 * 86400,
         'dt_wf': 5,
         'detector': 'H1',
         'fmax': 21,
         'Tsft': 1800,
-        'out_dir': './sfts/',
+        'out_dir': './sft2/',
         'freq_ranges': [(20.0, 20.0), (-1.35e-9, -1.35e-9), (-1e-12, 1e-12)],
         'freq_order': 2,
         'glitch_params_ranges': {
             'delta_f_over_f': (1e-9, 1e-6),
             'delta_f1dot_over_f1dot': (-1e-4, -1e-3),
-            'Q': (0, 1),
+            'Q': (0.8, 1),
             'tau': (20*86400, 20*86400)
         },
         'alpha': np.pi,
         'delta': np.pi / 4,
-        'seed': None
+        'seed': 0, 
+        'n_cpu':4
     }
     
     main(sim_params)
