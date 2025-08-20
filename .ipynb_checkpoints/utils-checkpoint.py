@@ -60,8 +60,8 @@ def gen_frequency_params(nSample, n, freq_ranges):
         raise ValueError(f"freq_ranges must contain exactly {n + 1} (min, max) pairs for f0 to f{n}.")
     
     freq_arrays = []
-    for i, (fmin, fmax) in enumerate(freq_ranges):
-        freq_arrays.append(np.random.uniform(fmin, fmax, nSample))
+    for i, (xmin, xmax) in enumerate(freq_ranges):
+        freq_arrays.append(np.random.uniform(xmin, xmax, nSample))
     
     return np.column_stack(freq_arrays)
 
@@ -98,7 +98,7 @@ def gen_glitch_params(n, m, tstart, Tdata, freq, f1dot,
         
         # Create list of m glitch parameter sets for this pulsar
         glitch_sets = [
-            [tglitch[j], delta_f_p[j], delta_f_t[j], delta_f1dot_p[j], tau[j], Q[i]]
+            [tglitch[j], delta_f_p[j], delta_f_t[j], delta_f1dot_p[j], tau[j], Q[j]]
             for j in range(m)
         ]
         glitch_params.append(glitch_sets)
@@ -122,7 +122,7 @@ def save_params(n, m, freq_params, amp_params, sky_params, glitch_params, out_di
         Sky parameters array of shape (n, 2) containing [alpha, delta].
     glitch_params : list
         List of length n, where each element is a list of m glitch parameter sets.
-        Each glitch parameter set contains [tglitch, df_permanent, df_tau, df1_permanent, df1_tau, tau].
+        Each glitch parameter set contains [tglitch, df_permanent, df_tau, df1_permanent, tau, Q].
     out_dir : str
         Output directory path for the CSV file.
     filename : str
@@ -130,22 +130,26 @@ def save_params(n, m, freq_params, amp_params, sky_params, glitch_params, out_di
     """
 
     # Prepare data for CSV
-    data = np.zeros((n*m, 2 + 5 + 3 + 2 + 6))  # n-th signal, m-th glitch, freq_params (5), amp_params (3), sky_params (2), glitch_params (6)
+    data = np.zeros((n*m, 2 + 5 + 3 + 2 + 6))  # n-th signal, m-th glitch, freq_params (5), amp_params (3), sky_params (2), glitch_params (5)
 
     # Fill in the data
     for i in range(n):
         for j in range(m):
             row_idx = i * m + j
-            data[row_idx, 0] = i  # 1-based indexing for n-th signal
-            data[row_idx, 1] = j  # 1-based indexing for m-th glitch
+            data[row_idx, 0] = i  # n-th signal
+            data[row_idx, 1] = j  # m-th glitch
             data[row_idx, 2:7] = freq_params[i]  # f0 to f4
             data[row_idx, 7:10] = amp_params[i]         # phi0, psi, cosi
             data[row_idx, 10:12] = sky_params[i]       # alpha, delta
-            data[row_idx, 12:18] = glitch_params[i][j]  # tglitch, df_permanent, df_tau, df1_permanent, df1_tau, tau
+            data[row_idx, 12:18] = glitch_params[i][j]  # tglitch, df_permanent, df_tau, df1_permanent, tau
 
     # Define column headers
     headers = ['n_th_signal', 'm_th_glitch', 'f0', 'f1', 'f2', 'f3', 'f4', 'phi0', 'psi', 'cosi', 'alpha', 'delta',
-               'tglitch', 'df_permanent', 'df_tau', 'df1_permanent', 'df1_tau', 'tau']
+               'tglitch', 'df_p', 'df_t', 'df1_p', 'tau', 'Q']
+
+    # Define format for each column
+    fmt = ['%d', '%d', '%.8f', '%.8e', '%.8e', '%.8e', '%.8e', '%.8f', '%.8f', '%.8f', '%.8f', '%.8f',
+           '%d', '%.8e', '%.8e', '%.8e', '%.8f', '%.8f']
 
     # Save to CSV
-    np.savetxt(os.path.join(out_dir, filename), data, delimiter=',', header=','.join(headers), comments='')
+    np.savetxt(os.path.join(out_dir, filename), data, delimiter=',', header=','.join(headers), comments='', fmt=fmt)

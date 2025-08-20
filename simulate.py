@@ -23,7 +23,6 @@ def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm):
     - delta_f_p (list): Permanent frequency changes.
     - delta_f_t (list): Transient frequency changes.
     - delta_f1dot_p (list): Permanent frequency derivative changes.
-    - delta_f1dot_t (list): Transient frequency derivative changes.
     - tau (list): Glitch decay timescales.
     
     Returns:
@@ -34,7 +33,7 @@ def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm):
     for gp in glitch_params_norm:
         if len(gp) != 6:
             raise ValueError("Each glitch parameter set must contain 6 elements: "
-                             "[tglitch, df_permanent, df_tau, df1_permanent, df1_tau, tau]")
+                             "[tglitch, df_p, df_t, df1_p, tau, Q]")
     if f1dot == 0:
         raise ValueError("F1dot is zero.")
 
@@ -54,11 +53,11 @@ def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm):
         
         # Apply glitch contributions
         for gp in glitch_params_norm:
-            tglitch, df_p, df_t, df1_p, df1_t, tau = gp
+            tglitch, df_p, df_t, df1_p, tau, _ = gp
             if dt > tglitch:
                 delta_t = dt - tglitch
-                dphi += df_p * delta_t
-                dphi += df_t * np.exp(-delta_t / tau) * delta_t
+                dphi += df_p * delta_t # nomial freq permanent change
+                dphi += df_t * np.exp(-delta_t / tau) * delta_t # nomial freq transisent change
                 dphi += df1_p * 0.5 * delta_t**2
                 
                 # Update effective frequency and f1dot
@@ -228,7 +227,7 @@ def main(params):
         print(f"Using fixed sky location: alpha={alpha}, delta={delta}")
     else:
         sky_params = gen_sky_location_params(n)
-    
+        
     # Generate glitch parameters
     glitch_params = gen_glitch_params(
         n, m, tstart, Tdata, freq_params[:, 0], freq_params[:, 1],
@@ -243,7 +242,7 @@ def main(params):
     freq_params_padded[:, :freq_order+1] = freq_params
     
     # Save parameters to .cvs file
-    save_params(n, m, freq_params_padded, amp_params, sky_params, glitch_params, out_dir, filename='signal_glitch_params.txt')
+    save_params(n, m, freq_params_padded, amp_params, sky_params, glitch_params, out_dir, filename='signal_glitch_params.csv')
   
     
     # Create list of dictionaries for each signal
@@ -278,29 +277,54 @@ def main(params):
 
 # Example usage
 if __name__ == "__main__":
-    n_cpu = 4
+    
+    # sim_params = {
+    #     'n': 2,
+    #     'm': 3,
+    #     'h0': 1e-24,
+    #     'tstart': 1368970000,
+    #     'Tdata': 120 * 86400,
+    #     'dt_wf': 5,
+    #     'detector': 'H1',
+    #     'fmax': 21,
+    #     'Tsft': 1800,
+    #     'out_dir': './sft2/',
+    #     'freq_ranges': [(20.0, 20.0), (-1.35e-9, -1.35e-9)],
+    #     'freq_order': 1,
+    #     'glitch_params_ranges': {
+    #         'delta_f_over_f': (1e-9, 1e-6),
+    #         'delta_f1dot_over_f1dot': (-1e-4, -1e-3),
+    #         'Q': (0.8, 1),
+    #         'tau': (20*86400, 20*86400)
+    #     },
+    #     'alpha': np.pi,
+    #     'delta': np.pi / 4,
+    #     'seed': 0, 
+    #     'n_cpu':4
+    # }
+    
     
     sim_params = {
         'n': 2,
-        'm': 5,
+        'm': 3,
         'h0': 1e-24,
         'tstart': 1368970000,
-        'Tdata': 120 * 86400,
+        'Tdata': 150 * 86400,
         'dt_wf': 5,
         'detector': 'H1',
-        'fmax': 21,
+        'fmax': 102,
         'Tsft': 1800,
         'out_dir': './sft2/',
-        'freq_ranges': [(20.0, 20.0), (-1.35e-9, -1.35e-9), (-1e-12, 1e-12)],
-        'freq_order': 2,
+        'freq_ranges': [(100.0, 100.0), (-5e-9, -5e-9)],
+        'freq_order': 1,
         'glitch_params_ranges': {
-            'delta_f_over_f': (1e-9, 1e-6),
-            'delta_f1dot_over_f1dot': (-1e-4, -1e-3),
+            'delta_f_over_f': (1e-6, 1e-6),
+            'delta_f1dot_over_f1dot': (-1e-3, -1e-3),
             'Q': (0.8, 1),
             'tau': (20*86400, 20*86400)
         },
-        'alpha': np.pi,
-        'delta': np.pi / 4,
+        'alpha': 6.12,
+        'delta': 1.01,
         'seed': 0, 
         'n_cpu':4
     }
