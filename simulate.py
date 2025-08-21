@@ -64,7 +64,7 @@ def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm):
         # Scale h0 based on effective f and f1dot
         if f1dot_eff == 0:
             raise ValueError("Effective f1dot is zero.")
-        h0_t = h0_scale * np.sqrt(np.abs(f1dot_eff) / f_eff**5) 
+        h0_t = h0_scale * np.sqrt(np.abs(f1dot_eff) / f_eff) 
         
         dphi = lal.TWOPI * dphi
         ap = h0_t * (1.0 + cosi**2) / 2.0
