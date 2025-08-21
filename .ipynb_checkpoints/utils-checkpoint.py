@@ -1,5 +1,16 @@
 import numpy as np
 import os
+import glob
+import subprocess
+from pathlib import Path
+from tqdm import tqdm
+
+def f_lim(freq, tau=300., obsDay=240.):
+    # limit for narrowband [f-lim/2,f+0.9+lim/2] needed for search using 1 year data, ref time in the middle of the search 
+    # lim ~ fdot *(t-tref) and |fdot| <= f/tau, tau = 300,700, lim<= f*(t-tref)/tau = 0.5 * f/300 * Tobs/365
+    # use 0.6 instead of 0.5 for antenna pattern buffer and multiple by the ration of total obs. day to a year
+    lim = np.ceil(0.8 * (freq/tau) * (obsDay/365.) ) 
+    return lim
 
 def gen_amplitude_params(nSample, phi_range=(0, 2*np.pi), psi_range=(-np.pi/4, np.pi/4), cosi_range=(-1, 1)):
     """
@@ -14,7 +25,7 @@ def gen_amplitude_params(nSample, phi_range=(0, 2*np.pi), psi_range=(-np.pi/4, n
     Returns:
     - params (np.ndarray): Array of shape (nSample, 3) with columns [phi, psi, cosi].
     """
-    print("Generating amplitude parameters.")
+    #print("Generating amplitude parameters.")
     phi_arr = np.random.uniform(0, 2*np.pi, nSample)
     psi_arr = np.random.uniform(-np.pi/4, np.pi/4, nSample)
     cosi_arr = np.random.uniform(-1, 1, nSample)
@@ -32,7 +43,7 @@ def gen_sky_location_params(nSample, alpha_range=(0, 2*np.pi), sinDelta_range=(-
     Returns:
     - params (np.ndarray): Array of shape (nSample, 2) with columns [alpha, delta].
     """
-    print("Generating sky location parameters.")
+    #print("Generating sky location parameters.")
     alpha_arr = np.random.uniform(alpha_range[0], alpha_range[1], nSample)
     sinDelta = np.random.uniform(sinDelta_range[0], sinDelta_range[1], nSample)
     delta_arr = np.arcsin(sinDelta)
@@ -53,7 +64,7 @@ def gen_frequency_params(nSample, n, freq_ranges):
     Raises:
     - ValueError: If n > 4 or freq_ranges length does not match n+1.
     """
-    print("Generating frequency parameters.")
+    #print("Generating frequency parameters.")
     if n > 4:
         raise ValueError("Order n must be <= 4.")
     if len(freq_ranges) != n + 1:
@@ -72,7 +83,7 @@ def gen_glitch_params(n, m, tstart, Tdata, freq, f1dot,
                      Q_range=(0, 1), tau_range=(10*86400, 200*86400)):
     """
     Generate glitch parameters for n pulsars, each with a specified number of glitches.
-    Parameters are drawn based on observables delta_f/f, delta_f1dot/f1dot, and Q.
+    Parameters are drawn based on observables delta_f/f, delta_f1/f1, and Q.
     """
     print("Generating glitch parameters.")
     glitch_params = []
@@ -93,19 +104,19 @@ def gen_glitch_params(n, m, tstart, Tdata, freq, f1dot,
         delta_f_t = Q * delta_f 
         delta_f_p = (1-Q) * delta_f 
         delta_f1dot_over_f1dot = np.random.uniform(delta_f1dot_over_f1dot_range[0], delta_f1dot_over_f1dot_range[1], m)
-        delta_f1dot_p = delta_f1dot_over_f1dot * f1dot[i]
+        delta_f1_p = delta_f1dot_over_f1dot * f1dot[i]
         tau = np.random.uniform(tau_range[0], tau_range[1], m)
         
         # Create list of m glitch parameter sets for this pulsar
         glitch_sets = [
-            [tglitch[j], delta_f_p[j], delta_f_t[j], delta_f1dot_p[j], tau[j], Q[j]]
+            [tglitch[j], delta_f_p[j], delta_f_t[j], delta_f1_p[j], tau[j], Q[j]]
             for j in range(m)
         ]
         glitch_params.append(glitch_sets)
     
     return glitch_params
 
-def save_params(n, m, freq_params, amp_params, sky_params, glitch_params, out_dir, filename='params.csv'):
+def save_params(n, m, tstart, freq_params, amp_params, sky_params, glitch_params, out_dir, filename='params.csv'):
     """
     Save parameters to a CSV file with n*m rows, combining source parameters with glitch parameters.
 
@@ -114,6 +125,8 @@ def save_params(n, m, freq_params, amp_params, sky_params, glitch_params, out_di
         Number of signals/sources.
     m : int
         Number of glitches per signal.
+    tstart : float
+        Start time (GPS seconds)
     freq_params : ndarray
         Frequency parameters array of shape (n, 5).
     amp_params : ndarray
@@ -130,7 +143,7 @@ def save_params(n, m, freq_params, amp_params, sky_params, glitch_params, out_di
     """
 
     # Prepare data for CSV
-    data = np.zeros((n*m, 2 + 5 + 3 + 2 + 6))  # n-th signal, m-th glitch, freq_params (5), amp_params (3), sky_params (2), glitch_params (5)
+    data = np.zeros((n*m, 2 + 5 + 3 + 2 + 6 + 1))  # n-th signal, m-th glitch, freq_params (5), amp_params (3), sky_params (2), glitch_params (5), t_glitch in day (1)
 
     # Fill in the data
     for i in range(n):
@@ -141,15 +154,78 @@ def save_params(n, m, freq_params, amp_params, sky_params, glitch_params, out_di
             data[row_idx, 2:7] = freq_params[i]  # f0 to f4
             data[row_idx, 7:10] = amp_params[i]         # phi0, psi, cosi
             data[row_idx, 10:12] = sky_params[i]       # alpha, delta
-            data[row_idx, 12:18] = glitch_params[i][j]  # tglitch, df_permanent, df_tau, df1_permanent, tau
+            data[row_idx, 12:18] = glitch_params[i][j]  # tglitch, df_permanent, df_transisent, df1_permanent, tau
+            data[row_idx, -1] = (glitch_params[i][j][0] - tstart)/86400  # tglitch in days
 
     # Define column headers
     headers = ['n_th_signal', 'm_th_glitch', 'f0', 'f1', 'f2', 'f3', 'f4', 'phi0', 'psi', 'cosi', 'alpha', 'delta',
-               'tglitch', 'df_p', 'df_t', 'df1_p', 'tau', 'Q']
+               'tglitch', 'df_p', 'df_t', 'df1_p', 'tau', 'Q', 'tglitch_day']
 
     # Define format for each column
     fmt = ['%d', '%d', '%.8f', '%.8e', '%.8e', '%.8e', '%.8e', '%.8f', '%.8f', '%.8f', '%.8f', '%.8f',
-           '%d', '%.8e', '%.8e', '%.8e', '%.8f', '%.8f']
+           '%d', '%.8e', '%.8e', '%.8e', '%.8f', '%.8f', '%.2f']
 
     # Save to CSV
     np.savetxt(os.path.join(out_dir, filename), data, delimiter=',', header=','.join(headers), comments='', fmt=fmt)
+    
+    
+
+
+def combine_sfts(fmin, fmax, fband, ts, te, output, sft_dir, fx=0.0):
+    """
+    Run lalpulsar_splitSFTs command for SFT files in a directory, sorted by timestamp.
+    
+    Parameters:
+    - fmin (float): Minimum frequency
+    - fmax (float): Maximum frequency
+    - fband (float): Frequency band
+    - fx (float): Frequency step
+    - ts (int): Start time
+    - te (int): End time
+    - output (str): Output directory or filename prefix
+    - sft_dir (str): Directory containing SFT files
+    
+    Returns:
+    - None: Executes the command for each SFT file
+    """
+    # Get all .sft files in the directory
+    sft_files = glob.glob(os.path.join(sft_dir, "*.sft"))
+    
+    # Sort files by timestamp (extracted from filename)
+    # Assumes filename format like H-1_H1_1800SFT_simCW0-TIMESTAMP-DURATION.sft
+    def get_timestamp(filename):
+        # Extract the timestamp part (e.g., 1368970000 from H-1_H1_1800SFT_simCW0-1368970000-1800.sft)
+        parts = os.path.basename(filename).split('-')
+        if len(parts) >= 3:
+            try:
+                return int(parts[-2])  # Timestamp is second-to-last part
+            except ValueError:
+                return 0  # Fallback if timestamp is not an integer
+        return 0
+    
+    sft_files = sorted(sft_files, key=get_timestamp)
+    
+    # Construct the command template
+    cmd_template = (
+        "lalpulsar_splitSFTs "
+        "-fs {} -fe {} -fb {} -fx {} -ts {} -te {} -n {} -- {}"
+    )
+    
+    # Ensure output directory exists
+    os.makedirs(os.path.dirname(output) or ".", exist_ok=True)
+    
+    # Run the command for each SFT file
+    for sft in tqdm(sft_files, total=len(sft_files), desc="Combining SFTs..."):
+        cmd = cmd_template.format(fmin, fmax, fband, fx, ts, te, output, sft)
+        print(f"Executing: {cmd}")
+        try:
+            subprocess.run(cmd, shell=True, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error executing command for {sft}: {e}")
+   
+    # Run the command to remove sfts
+    for sft in sft_files:
+        try:
+            os.remove(sft)  # Delete the SFT file after successful processing
+        except OSError as e:
+            print(f"Error removing file {sft}: {e}")

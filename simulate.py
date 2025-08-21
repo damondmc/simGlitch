@@ -1,10 +1,7 @@
-import numpy as np
 import lal
 from lalpulsar import simulateCW
-from tqdm import tqdm
 import time
 import multiprocessing as mp
-import os
 from utils import *
 
 
@@ -94,11 +91,11 @@ def simulate_signal(signal_params):
         - Tdata (float): Duration (seconds)
         - dt_wf (float): Waveform time step (seconds)
         - detector (str): Detector name
-        - fmax (float): Maximum frequency for SFTs
         - Tsft (float): SFT duration (seconds)
         - out_dir (str): Output directory
         - signal_idx (int): Signal index
     """
+    age = signal_params['age']
     tref = signal_params['tstart'] + 0.5 * signal_params['Tdata']
     freq_params = signal_params['freq_params']
     phi0 = signal_params['phi0']
@@ -112,7 +109,6 @@ def simulate_signal(signal_params):
     Tdata = signal_params['Tdata']
     dt_wf = signal_params['dt_wf']
     detector = signal_params['detector']
-    fmax = signal_params['fmax']
     Tsft = signal_params['Tsft']
     out_dir = signal_params['out_dir']
     signal_idx = signal_params['signal_idx']
@@ -131,9 +127,17 @@ def simulate_signal(signal_params):
     os.makedirs(signal_out_dir, exist_ok=True)
     
     S = simulateCW.CWSimulator(tref, tstart, Tdata, wf, dt_wf, phi0, psi, alpha, delta, detector)
-    
+
+    lim = f_lim(freq, age, Tdata/86400)
+    fmin = float(freq-lim) # Minimum frequency of narrow-band
+    fmax= float(freq+lim) # Maximum frequency of narrow-band   
+    fband = int(fmax-fmin) # Total bandwidth covered by narrow-band
+
     for file, j, N in S.write_sft_files(fmax=fmax, Tsft=Tsft, comment=f"simCW{signal_idx}", out_dir=signal_out_dir):
         pass
+    
+
+    combine_sfts(fmin=fmin, fmax=fmax, fband=fband, ts=tstart, te=tstart+Tdata, output=signal_out_dir, sft_dir=signal_out_dir)
 
 # Updated main function with strict parameter validation
 def main(params):
@@ -149,7 +153,6 @@ def main(params):
         - Tdata (float): Duration (seconds).
         - dt_wf (float): Waveform time step (seconds).
         - detector (str): Detector name (e.g., 'H1').
-        - fmax (float): Maximum frequency for SFTs.
         - Tsft (float): SFT duration (seconds).
         - out_dir (str): Output directory.
         - freq_ranges (list): List of (min, max) tuples for frequency derivatives.
@@ -168,7 +171,7 @@ def main(params):
     # Define required parameters
     required_params = [
         'n', 'm', 'h0', 'tstart', 'Tdata', 'dt_wf', 'detector',
-        'fmax', 'Tsft', 'out_dir', 'freq_ranges', 'freq_order',
+        'Tsft', 'out_dir', 'freq_ranges', 'freq_order',
         'glitch_params_ranges'
     ]
     
@@ -185,9 +188,9 @@ def main(params):
     Tdata = params['Tdata']
     dt_wf = params['dt_wf']
     detector = params['detector']
-    fmax = params['fmax']
     Tsft = params['Tsft']
     out_dir = params['out_dir']
+    age = params['age']
     freq_ranges = params['freq_ranges']
     freq_order = params['freq_order']
     glitch_params_ranges = params['glitch_params_ranges']
@@ -242,12 +245,13 @@ def main(params):
     freq_params_padded[:, :freq_order+1] = freq_params
     
     # Save parameters to .cvs file
-    save_params(n, m, freq_params_padded, amp_params, sky_params, glitch_params, out_dir, filename='signal_glitch_params.csv')
+    save_params(n, m, tstart, freq_params_padded, amp_params, sky_params, glitch_params, out_dir, filename='signal_glitch_params.csv')
   
     
     # Create list of dictionaries for each signal
     sim_args = [
         {
+            'age': age,
             'freq_params': freq_params_padded[i],
             'phi0': amp_params[i, 0],
             'psi': amp_params[i, 1],
@@ -260,7 +264,6 @@ def main(params):
             'Tdata': Tdata,
             'dt_wf': dt_wf,
             'detector': detector,
-            'fmax': fmax,
             'Tsft': Tsft,
             'out_dir': out_dir,
             'signal_idx': i
@@ -286,9 +289,8 @@ if __name__ == "__main__":
     #     'Tdata': 120 * 86400,
     #     'dt_wf': 5,
     #     'detector': 'H1',
-    #     'fmax': 21,
     #     'Tsft': 1800,
-    #     'out_dir': './sft2/',
+    #     'out_dir': './sfts/',
     #     'freq_ranges': [(20.0, 20.0), (-1.35e-9, -1.35e-9)],
     #     'freq_order': 1,
     #     'glitch_params_ranges': {
@@ -305,27 +307,27 @@ if __name__ == "__main__":
     
     
     sim_params = {
-        'n': 2,
-        'm': 3,
+        'n': 4,
+        'm': 4,
         'h0': 1e-24,
         'tstart': 1368970000,
-        'Tdata': 150 * 86400,
+        'Tdata': 10 * 86400,
         'dt_wf': 5,
         'detector': 'H1',
-        'fmax': 102,
         'Tsft': 1800,
-        'out_dir': './sft2/',
-        'freq_ranges': [(100.0, 100.0), (-5e-9, -5e-9)],
+        'out_dir': './sfts/',
+        'age': 300,
+        'freq_ranges': [(400.0, 400.0), (-1e-8, -1e-8)],
         'freq_order': 1,
         'glitch_params_ranges': {
             'delta_f_over_f': (1e-6, 1e-6),
-            'delta_f1dot_over_f1dot': (-1e-3, -1e-3),
+            'delta_f1dot_over_f1dot': (5e-3, 5e-3),
             'Q': (0.8, 1),
-            'tau': (20*86400, 20*86400)
+            'tau': (40*86400, 40*86400)
         },
         'alpha': 6.12,
         'delta': 1.01,
-        'seed': 0, 
+        'seed': None, 
         'n_cpu':4
     }
     

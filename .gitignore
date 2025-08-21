@@ -1,6 +1,6 @@
 others/
 sfts/
-sft2/
+sfts_/
 .ipynb_checkpoints
 __pycache__
 .gitignore
