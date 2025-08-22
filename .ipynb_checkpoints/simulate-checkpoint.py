@@ -4,7 +4,6 @@ import time
 import multiprocessing as mp
 from utils import *
 
-
 # Corrected waveform function
 def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm):
     """
@@ -110,6 +109,7 @@ def simulate_signal(signal_params):
     dt_wf = signal_params['dt_wf']
     detector = signal_params['detector']
     Tsft = signal_params['Tsft']
+    sqrtSX = signal_params['sqrtSX']
     out_dir = signal_params['out_dir']
     signal_idx = signal_params['signal_idx']
     
@@ -133,10 +133,9 @@ def simulate_signal(signal_params):
     fmax= float(freq+lim) # Maximum frequency of narrow-band   
     fband = int(fmax-fmin) # Total bandwidth covered by narrow-band
 
-    for file, j, N in S.write_sft_files(fmax=fmax, Tsft=Tsft, comment=f"simCW{signal_idx}", out_dir=signal_out_dir):
+    for file, j, N in S.write_sft_files(noise_sqrt_Sh=sqrtSX, fmax=fmax, Tsft=Tsft, comment=f"simCW{signal_idx}", out_dir=signal_out_dir):
         pass
     
-
     combine_sfts(fmin=fmin, fmax=fmax, fband=fband, ts=tstart, te=tstart+Tdata, output=signal_out_dir, sft_dir=signal_out_dir)
 
 # Updated main function with strict parameter validation
@@ -153,6 +152,7 @@ def main(params):
         - Tdata (float): Duration (seconds).
         - dt_wf (float): Waveform time step (seconds).
         - detector (str): Detector name (e.g., 'H1').
+        - sqrtSX' (float): Noise amplitude.
         - Tsft (float): SFT duration (seconds).
         - out_dir (str): Output directory.
         - freq_ranges (list): List of (min, max) tuples for frequency derivatives.
@@ -189,6 +189,7 @@ def main(params):
     dt_wf = params['dt_wf']
     detector = params['detector']
     Tsft = params['Tsft']
+    sqrtSX = params['sqrtSX']
     out_dir = params['out_dir']
     age = params['age']
     freq_ranges = params['freq_ranges']
@@ -265,6 +266,7 @@ def main(params):
             'dt_wf': dt_wf,
             'detector': detector,
             'Tsft': Tsft,
+            'sqrtSX': sqrtSX,
             'out_dir': out_dir,
             'signal_idx': i
         }
@@ -281,54 +283,36 @@ def main(params):
 # Example usage
 if __name__ == "__main__":
     
-    # sim_params = {
-    #     'n': 2,
-    #     'm': 3,
-    #     'h0': 1e-24,
-    #     'tstart': 1368970000,
-    #     'Tdata': 120 * 86400,
-    #     'dt_wf': 5,
-    #     'detector': 'H1',
-    #     'Tsft': 1800,
-    #     'out_dir': './sfts/',
-    #     'freq_ranges': [(20.0, 20.0), (-1.35e-9, -1.35e-9)],
-    #     'freq_order': 1,
-    #     'glitch_params_ranges': {
-    #         'delta_f_over_f': (1e-9, 1e-6),
-    #         'delta_f1dot_over_f1dot': (-1e-4, -1e-3),
-    #         'Q': (0.8, 1),
-    #         'tau': (20*86400, 20*86400)
-    #     },
-    #     'alpha': np.pi,
-    #     'delta': np.pi / 4,
-    #     'seed': 0, 
-    #     'n_cpu':4
-    # }
+    from cw_manager.target import CassA as target
     
-    
+    freq = 450
+    f1min, f1max = -freq/target.tau, 0
+    f2min, f2max = 0, 7*f1min**2/freq
+
     sim_params = {
-        'n': 4,
-        'm': 4,
-        'h0': 1e-24,
+        'n': 500,
+        'm': 0,
+        'h0': 1e-25,
         'tstart': 1368970000,
-        'Tdata': 10 * 86400,
+        'Tdata': 156 * 86400,
         'dt_wf': 5,
         'detector': 'H1',
+        'sqrtSX': 1e-23,
         'Tsft': 1800,
-        'out_dir': './sfts/',
-        'age': 300,
-        'freq_ranges': [(400.0, 400.0), (-1e-8, -1e-8)],
-        'freq_order': 1,
+        'out_dir': './no_glitch',
+        'age': target.age,
+        'freq_ranges': [(freq, freq), (f1min, f1max), (f2min, f2max)],
+        'freq_order': 2,
         'glitch_params_ranges': {
-            'delta_f_over_f': (1e-6, 1e-6),
-            'delta_f1dot_over_f1dot': (5e-3, 5e-3),
+            'delta_f_over_f': (1e-6, 3e-6),
+            'delta_f1dot_over_f1dot': (1e-3, 1e-2),
             'Q': (0.8, 1),
-            'tau': (40*86400, 40*86400)
+            'tau': (50*86400, 50*86400)
         },
-        'alpha': 6.12,
-        'delta': 1.01,
-        'seed': None, 
-        'n_cpu':4
+        'alpha': target.alpha,
+        'delta': target.delta,
+        'seed': 0, 
+        'n_cpu':16
     }
-    
+
     main(sim_params)
