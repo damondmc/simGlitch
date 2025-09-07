@@ -125,7 +125,10 @@ def simulate_signal(signal_params):
     wf = waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm)
     
     signal_out_dir = os.path.join(out_dir, f"simCW{signal_idx}")
+    temp_dir = os.path.join('/scratch/hoitim.cheung/', f"simCW{signal_idx}")
+    
     os.makedirs(signal_out_dir, exist_ok=True)
+    os.makedirs(temp_dir, exist_ok=True)
     
     S = simulateCW.CWSimulator(tref, tstart, Tdata, wf, dt_wf, phi0, psi, alpha, delta, detector)
 
@@ -134,10 +137,10 @@ def simulate_signal(signal_params):
     fmax= float(freq+lim) # Maximum frequency of narrow-band   
     fband = int(fmax-fmin) # Total bandwidth covered by narrow-band
 
-    for file, j, N in S.write_sft_files(noise_sqrt_Sh=sqrtSX, fmax=fmax, Tsft=Tsft, comment=f"simCW{signal_idx}", out_dir=signal_out_dir):
+    for file, j, N in S.write_sft_files(noise_sqrt_Sh=sqrtSX, fmax=fmax, Tsft=Tsft, comment=f"simCW{signal_idx}", out_dir=temp_dir):
         pass
     
-    combine_sfts(fmin=fmin, fmax=fmax, fband=fband, ts=tstart, te=tstart+Tdata, output=signal_out_dir, sft_dir=signal_out_dir)
+    combine_sfts(fmin=fmin, fmax=fmax, fband=fband, ts=tstart, te=tstart+Tdata, output=signal_out_dir, sft_dir=temp_dir)
 
 # Updated main function with strict parameter validation
 def main(params):

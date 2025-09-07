@@ -1,0 +1,15 @@
+universe = vanilla
+notification = Never
+request_memory = 32GB
+request_disk = 32GB
+request_cpus = 16
+getenv = True
+accounting_group = ligo.prod.o4.cw.directedisolated.semicoherent
+accounting_group_user = hoitim.cheung
+
+executable = /home/hoitim.cheung/glitch/simulate.py
+output = /home/hoitim.cheung/glitch/sim.out
+error = /home/hoitim.cheung/glitch/sim.err
+log = /home/hoitim.cheung/glitch/sim.log
+
+queue 1 

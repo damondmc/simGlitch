@@ -1,12 +1,10 @@
 others/
 sfts/
-sfts_/
 no_glitch/
 with_glitch/
 .ipynb_checkpoints
 __pycache__
 .gitignore
-sim.err
-sim.log
-sim.out
-simulate.sub
+*.err
+*.log
+*.out
