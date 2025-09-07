@@ -1,4 +1,8 @@
-A package to simulate continuous gravitational wave signals with glitches.
+# A package to simulate continuous gravitational wave signals with glitches.
+
+This package leverage the LALSuite to simulate continuous gravitational wave signals with glitches.
 
 
-This package leverage the PyFstat package to simulate continuous gravitational wave signals with glitches and time gap.
+## (Working/to do)
+
+Add time gap. 
