@@ -1,7 +1,6 @@
 others/
 sfts/
 no_glitch/
-with_glitch/
 .ipynb_checkpoints
 __pycache__
 .gitignore

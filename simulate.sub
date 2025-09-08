@@ -8,8 +8,8 @@ accounting_group = ligo.prod.o4.cw.directedisolated.semicoherent
 accounting_group_user = hoitim.cheung
 
 executable = /home/hoitim.cheung/glitch/simulate.py
-output = /home/hoitim.cheung/glitch/out/sim.out
-error = /home/hoitim.cheung/glitch/out/sim.err
-log = /home/hoitim.cheung/glitch/out/sim.log
+output = /home/hoitim.cheung/glitch/out/simw.out
+error = /home/hoitim.cheung/glitch/out/simw.err
+log = /home/hoitim.cheung/glitch/out/simw.log
 
 queue 1 

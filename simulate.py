@@ -125,7 +125,7 @@ def simulate_signal(signal_params):
     wf = waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm)
     
     signal_out_dir = os.path.join('/home/hoitim.cheung/glitch/data', label, f"simCW{signal_idx}")
-    temp_dir = os.path.join('/scratch/hoitim.cheung', label, f"simCW{signal_idx}")
+    temp_dir = os.path.join('/scratch/hoitim.cheung/data', label, f"simCW{signal_idx}")
     
     os.makedirs(signal_out_dir, exist_ok=True)
     os.makedirs(temp_dir, exist_ok=True)
@@ -295,7 +295,7 @@ if __name__ == "__main__":
 
     sim_params = {
         'n': 100,
-        'm': 0,
+        'm': 3,
         'h0': 1e-26,
         'tstart': 1368970000,
         'Tdata': 100 * 86400,
@@ -303,7 +303,7 @@ if __name__ == "__main__":
         'detector': 'H1',
         'sqrtSX': 1e-23,
         'Tsft': 1800,
-        'label': 'no_glitch',
+        'label': 'with_glitch',
         'age': target.tau,
         'freq_ranges': [(freq, freq), (f1min, f1max), (f2min, f2max)],
         'freq_order': 2,
