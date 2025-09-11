@@ -34,9 +34,9 @@ def run_command(args):
         sft_file = find_sft_file(i, label, homedir)
         command = (
             f"lalpulsar_Weave "
-            f"--output-file={homedir}results/{label}_CW{i}.fts "
+            f"--output-file={homedir}/results/{label}_CW{i}.fts "
             f"--sft-files={sft_file} "
-            f"--setup-file={homedir}metric/{setup_file} "
+            f"--setup-file={homedir}/metric/{setup_file} "
             f"--semi-max-mismatch=0.2 "
             f"--coh-max-mismatch=0.1 "
             f"--toplist-limit=1000 "
@@ -47,6 +47,7 @@ def run_command(args):
             f"--f1dot={df['f1'][i]-dx[1]}/{2*dx[1]} "
             f"--f2dot={df['f2'][i]-dx[2]}/{2*dx[2]}"
         )
+        print(command)
         result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
         logger.info(f"Command {i} for {label} completed successfully")
         return result.stdout
@@ -68,9 +69,13 @@ def main():
                         help="Path to setup file relative to homedir (default: metric_5d.fts)")
     parser.add_argument('--homedir', default='/home/hoitim.cheung/glitch/',
                         help="Base directory path (default: /home/hoitim.cheung/glitch/)")
-    parser.add_argument('--n', type=int, default=100,
-                        help="Number of jobs (default: 100)")
+    parser.add_argument('--n', type=int, default=32,
+                        help="Number of jobs (default: 32)")
     args = parser.parse_args()
+    
+    label = args.label
+    setup_file = args.setup_file
+    n = args.n
 
     # Configuration
     homedir = args.homedir.rstrip('/')
@@ -83,7 +88,7 @@ def main():
     try:
         df = pd.read_csv(os.path.join(homedir, f'data/{label}/signal_glitch_params.csv'))
         logger.info("DataFrame loaded successfully")
-        logger.info(f"DataFrame head:\n{df.head()}")
+        logger.info(f"DataFrame head:\n{df}")
     except FileNotFoundError:
         logger.error(f"CSV file not found: {os.path.join(homedir, f'data/{label}/signal_glitch_params.csv')}")
         return
@@ -92,7 +97,7 @@ def main():
     os.makedirs(os.path.join(homedir, 'results'), exist_ok=True)
 
     # Prepare arguments for multiprocessing
-    command_args = [(i, homedir, args.label, args.setup_file, df, dx) for i in range(args.n)]
+    command_args = [(i, homedir, label, setup_file, df, dx) for i in range(n)]
 
     # Run commands in parallel
     try:
