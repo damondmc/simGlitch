@@ -1,8 +1,8 @@
 universe = vanilla
 notification = Never
-request_memory = 64GB
-request_disk = 64GB
-request_cpus = 32
+request_memory = 32GB
+request_disk = 32GB
+request_cpus = 16
 getenv = True
 accounting_group = ligo.prod.o4.cw.directedisolated.semicoherent
 accounting_group_user = hoitim.cheung

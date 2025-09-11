@@ -181,7 +181,11 @@ def save_params(n, m, tstart, freq_params, amp_params, sky_params, glitch_params
             data[i, 10:12] = sky_params[i]  # alpha, delta
 
     # Save to CSV
-    np.savetxt(os.path.join('/home/hoitim.cheung/glitch/data', label, filename), data, delimiter=',', header=','.join(headers), comments='', fmt=fmt)
+    savepath = os.path.join('/home/hoitim.cheung/glitch/data', label)
+    os.makedirs(savepath, exist_ok=True)
+    
+    filepath = os.path.join('/home/hoitim.cheung/glitch/data', label, filename)
+    np.savetxt(filepath, data, delimiter=',', header=','.join(headers), comments='', fmt=fmt)
 
 
 def combine_sfts(fmin, fmax, fband, ts, te, output, sft_dir, fx=0.0):

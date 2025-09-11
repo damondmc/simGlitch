@@ -1,0 +1,17 @@
+universe = vanilla
+notification = Never
+request_memory = 32GB
+request_disk = 16GB
+request_cpus = 16
+getenv = True
+accounting_group = ligo.prod.o4.cw.directedisolated.semicoherent
+accounting_group_user = hoitim.cheung
+
+executable = /home/hoitim.cheung/glitch/search.py
+arguments = --label with_glitch --setup-fie metric_5d.fts
+
+output = /home/hoitim.cheung/glitch/out/searchw.out
+error = /home/hoitim.cheung/glitch/out/searchw.err
+log = /home/hoitim.cheung/glitch/out/searchw.log
+
+queue 1 

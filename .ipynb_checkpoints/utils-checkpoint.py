@@ -116,7 +116,7 @@ def gen_glitch_params(n, m, tstart, Tdata, freq, f1dot,
     
     return glitch_params
     
-def save_params(n, m, tstart, freq_params, amp_params, sky_params, glitch_params, out_dir, filename='params.csv'):
+def save_params(n, m, tstart, freq_params, amp_params, sky_params, glitch_params, label, filename='params.csv'):
     """
     Save parameters to a CSV file with n*m rows, combining source parameters with glitch parameters.
     Handles cases where glitch parameters are empty.
@@ -138,16 +138,14 @@ def save_params(n, m, tstart, freq_params, amp_params, sky_params, glitch_params
         List of length n, where each element is a list of m glitch parameter sets.
         Each glitch parameter set contains [tglitch, df_permanent, df_transisent, df1_permanent, tau, Q].
         Can be empty for some or all signals.
-    out_dir : str
-        Output directory path for the CSV file.
+    label : str
+        Output directory path label for the CSV file.
     filename : str
         Name of the output CSV file (default: 'params.csv').
     """
 
     # Check if glitch_params is empty or m == 0
-    has_glitches = m > 0 and any(len(glitch_params[i]) > 0 for i in range(n))
-
-    if has_glitches:
+    if m > 0:
         # Standard case: glitches exist
         num_columns = 2 + 5 + 3 + 2 + 6 + 1  # n_th_signal, m_th_glitch, freq_params (5), amp_params (3), sky_params (2), glitch_params (6), tglitch_day
         data = np.zeros((n * m, num_columns))
@@ -183,7 +181,11 @@ def save_params(n, m, tstart, freq_params, amp_params, sky_params, glitch_params
             data[i, 10:12] = sky_params[i]  # alpha, delta
 
     # Save to CSV
-    np.savetxt(os.path.join(out_dir, filename), data, delimiter=',', header=','.join(headers), comments='', fmt=fmt)
+    savepath = os.path.join('/home/hoitim.cheung/glitch/data', label)
+    os.makedirs(savepath, exist_ok=True)
+    
+    filepath = os.path.join('/home/hoitim.cheung/glitch/data', label, filename)
+    np.savetxt(filepath, data, delimiter=',', header=','.join(headers), comments='', fmt=fmt)
 
 
 def combine_sfts(fmin, fmax, fband, ts, te, output, sft_dir, fx=0.0):

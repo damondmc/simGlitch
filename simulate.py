@@ -37,7 +37,7 @@ def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm):
     # Initial amplitude scaling factor
     f0 = freq
     f1dot0 = f1dot
-    h0_scale = h0 / np.sqrt(np.abs(f1dot0) / f0**5)
+    h0_scale = h0 / np.sqrt(np.abs(f1dot0) / f0)
     
     def wf(dt):
         # Phase evolution
@@ -62,9 +62,12 @@ def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm):
                 f1dot_eff += df1_p - df_t / tau * np.exp(-delta_t / tau)
         
         # Scale h0 based on effective f and f1dot
-        if f1dot_eff == 0:
-            raise ValueError("Effective f1dot is zero.")
-        h0_t = h0_scale * np.sqrt(np.abs(f1dot_eff) / f_eff) 
+        if len(glitch_params_norm):
+            if f1dot_eff == 0:
+                raise ValueError("Effective f1dot is zero.")
+            h0_t = h0_scale * np.sqrt(np.abs(f1dot_eff) / f_eff) 
+        else:
+            h0_t = h0
         
         dphi = lal.TWOPI * dphi
         ap = h0_t * (1.0 + cosi**2) / 2.0
@@ -282,7 +285,7 @@ def main(params):
         list(tqdm(pool.imap_unordered(simulate_signal, sim_args), 
                   total=n, desc="Simulating signals"))
     
-    print(f"Done. Time used: {time.time() - t0:.2f}s")
+    print(f"\nDone. Time used: {time.time() - t0:.2f}s")
 
 # Example usage
 if __name__ == "__main__":
@@ -293,15 +296,21 @@ if __name__ == "__main__":
     f1min, f1max = -freq/target.tau, 0
     f2min, f2max = 0, 7*f1min**2/freq
 
+    depth = 50
+    sqrtSX = 1e-23 
+    h0 = sqrtSX/depth 
+    
+    print(f"depth:{depth}, sqrtSX:{sqrtSX}, h0:{h0}")
+    
     sim_params = {
-        'n': 100,
-        'm': 3,
-        'h0': 1e-26,
+        'n': 32,
+        'm': 2,
+        'h0': h0,
         'tstart': 1368970000,
         'Tdata': 100 * 86400,
         'dt_wf': 5,
         'detector': 'H1',
-        'sqrtSX': 1e-23,
+        'sqrtSX': sqrtSX,
         'Tsft': 1800,
         'label': 'with_glitch',
         'age': target.tau,

@@ -37,7 +37,7 @@ def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm):
     # Initial amplitude scaling factor
     f0 = freq
     f1dot0 = f1dot
-    h0_scale = h0 / np.sqrt(np.abs(f1dot0) / f0**5)
+    h0_scale = h0 / np.sqrt(np.abs(f1dot0) / f0)
     
     def wf(dt):
         # Phase evolution
@@ -62,9 +62,12 @@ def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm):
                 f1dot_eff += df1_p - df_t / tau * np.exp(-delta_t / tau)
         
         # Scale h0 based on effective f and f1dot
-        if f1dot_eff == 0:
-            raise ValueError("Effective f1dot is zero.")
-        h0_t = h0_scale * np.sqrt(np.abs(f1dot_eff) / f_eff) 
+        if len(glitch_params_norm):
+            if f1dot_eff == 0:
+                raise ValueError("Effective f1dot is zero.")
+            h0_t = h0_scale * np.sqrt(np.abs(f1dot_eff) / f_eff) 
+        else:
+            h0_t = h0
         
         dphi = lal.TWOPI * dphi
         ap = h0_t * (1.0 + cosi**2) / 2.0
@@ -92,7 +95,7 @@ def simulate_signal(signal_params):
         - dt_wf (float): Waveform time step (seconds)
         - detector (str): Detector name
         - Tsft (float): SFT duration (seconds)
-        - out_dir (str): Output directory
+        - label (str): Output directory label
         - signal_idx (int): Signal index
     """
     age = signal_params['age']
@@ -111,7 +114,7 @@ def simulate_signal(signal_params):
     detector = signal_params['detector']
     Tsft = signal_params['Tsft']
     sqrtSX = signal_params['sqrtSX']
-    out_dir = signal_params['out_dir']
+    label = signal_params['label']
     signal_idx = signal_params['signal_idx']
     
     freq, f1dot, f2dot, f3dot, f4dot = freq_params
@@ -124,8 +127,8 @@ def simulate_signal(signal_params):
     
     wf = waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm)
     
-    signal_out_dir = os.path.join(out_dir, f"simCW{signal_idx}")
-    temp_dir = os.path.join('/scratch/hoitim.cheung/', f"simCW{signal_idx}")
+    signal_out_dir = os.path.join('/home/hoitim.cheung/glitch/data', label, f"simCW{signal_idx}")
+    temp_dir = os.path.join('/scratch/hoitim.cheung/data', label, f"simCW{signal_idx}")
     
     os.makedirs(signal_out_dir, exist_ok=True)
     os.makedirs(temp_dir, exist_ok=True)
@@ -158,7 +161,7 @@ def main(params):
         - detector (str): Detector name (e.g., 'H1').
         - sqrtSX' (float): Noise amplitude.
         - Tsft (float): SFT duration (seconds).
-        - out_dir (str): Output directory.
+        - label (str): Output directory label.
         - freq_ranges (list): List of (min, max) tuples for frequency derivatives.
         - freq_order (int): Order of frequency derivatives (0 to 4).
         - glitch_params_ranges (dict): Ranges for glitch parameters.
@@ -175,7 +178,7 @@ def main(params):
     # Define required parameters
     required_params = [
         'n', 'm', 'h0', 'tstart', 'Tdata', 'dt_wf', 'detector',
-        'Tsft', 'out_dir', 'freq_ranges', 'freq_order',
+        'Tsft', 'label', 'freq_ranges', 'freq_order',
         'glitch_params_ranges'
     ]
     
@@ -194,7 +197,7 @@ def main(params):
     detector = params['detector']
     Tsft = params['Tsft']
     sqrtSX = params['sqrtSX']
-    out_dir = params['out_dir']
+    label = params['label']
     age = params['age']
     freq_ranges = params['freq_ranges']
     freq_order = params['freq_order']
@@ -250,7 +253,7 @@ def main(params):
     freq_params_padded[:, :freq_order+1] = freq_params
     
     # Save parameters to .cvs file
-    save_params(n, m, tstart, freq_params_padded, amp_params, sky_params, glitch_params, out_dir, filename='signal_glitch_params.csv')
+    save_params(n, m, tstart, freq_params_padded, amp_params, sky_params, glitch_params, label, filename='signal_glitch_params.csv')
   
     
     # Create list of dictionaries for each signal
@@ -271,7 +274,7 @@ def main(params):
             'detector': detector,
             'Tsft': Tsft,
             'sqrtSX': sqrtSX,
-            'out_dir': out_dir,
+            'label': label,
             'signal_idx': i
         }
         for i in range(n)
@@ -282,7 +285,7 @@ def main(params):
         list(tqdm(pool.imap_unordered(simulate_signal, sim_args), 
                   total=n, desc="Simulating signals"))
     
-    print(f"Done. Time used: {time.time() - t0:.2f}s")
+    print(f"\nDone. Time used: {time.time() - t0:.2f}s")
 
 # Example usage
 if __name__ == "__main__":
@@ -293,17 +296,23 @@ if __name__ == "__main__":
     f1min, f1max = -freq/target.tau, 0
     f2min, f2max = 0, 7*f1min**2/freq
 
+    depth = 50
+    sqrtSX = 1e-23 
+    h0 = sqrtSX/depth 
+    
+    print(f"depth:{depth}, sqrtSX:{sqrtSX}, h0:{h0}")
+    
     sim_params = {
-        'n': 500,
-        'm': 0,
-        'h0': 1e-25,
+        'n': 32,
+        'm': 2,
+        'h0': h0,
         'tstart': 1368970000,
-        'Tdata': 156 * 86400,
+        'Tdata': 100 * 86400,
         'dt_wf': 5,
         'detector': 'H1',
-        'sqrtSX': 1e-23,
+        'sqrtSX': sqrtSX,
         'Tsft': 1800,
-        'out_dir': './no_glitch',
+        'label': 'with_glitch',
         'age': target.tau,
         'freq_ranges': [(freq, freq), (f1min, f1max), (f2min, f2max)],
         'freq_order': 2,
@@ -311,12 +320,12 @@ if __name__ == "__main__":
             'delta_f_over_f': (1e-6, 3e-6),
             'delta_f1dot_over_f1dot': (1e-3, 1e-2),
             'Q': (0.8, 1),
-            'tau': (50*86400, 50*86400)
+            'tau': (20*86400, 20*86400)
         },
         'alpha': target.alpha,
         'delta': target.delta,
         'seed': 0, 
-        'n_cpu':16
+        'n_cpu':32
     }
 
     main(sim_params)
