@@ -29,14 +29,14 @@ def find_sft_file(i, label, homedir):
 
 def run_command(args):
     """Run a single lalpulsar_Weave command."""
-    i, homedir, label, setup_file, df, dx = args
+    i, homedir, label, fmin, fmax, df, dx, tcoh_day = args
     try:
         sft_file = find_sft_file(i, label, homedir)
         command = (
             f"lalpulsar_Weave "
-            f"--output-file={homedir}/results/{label}_CW{i}.fts "
+            f"--output-file={homedir}/results/{tcoh_day}d/{label}/{fmin}-{fmax}Hz/{label}_CW{i}.fts "
             f"--sft-files={sft_file} "
-            f"--setup-file={homedir}/metric/{setup_file} "
+            f"--setup-file={homedir}/metric/metric_{tcoh_day}d.fts "
             f"--semi-max-mismatch=0.2 "
             f"--coh-max-mismatch=0.1 "
             f"--toplist-limit=1000 "
@@ -61,12 +61,16 @@ def run_command(args):
 def main():
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Run lalpulsar_Weave commands with multiprocessing.")
-    parser.add_argument('--label', default='no_glitch', choices=['no_glitch', 'with_glitch'],
+    parser.add_argument('--label', default='no_glitch',
                         help="Label for data directory (no_glitch or with_glitch)")
     parser.add_argument('--cpus', type=int, default=16,
                         help="Number of CPU cores to use for multiprocessing (default: all available)")
-    parser.add_argument('--setup-file', default='metric_5d.fts',
-                        help="Path to setup file relative to homedir (default: metric_5d.fts)")
+    parser.add_argument('--fmin', type=int, default=100,
+                        help="Min. frequency.")
+    parser.add_argument('--fmax', type=int, default=100,
+                        help="Max. frequency.")
+    parser.add_argument('--tcoh_day', type=int, default=5,
+                        help="Coherence time in day.")
     parser.add_argument('--homedir', default='/home/hoitim.cheung/glitch/',
                         help="Base directory path (default: /home/hoitim.cheung/glitch/)")
     parser.add_argument('--n', type=int, default=32,
@@ -74,30 +78,35 @@ def main():
     args = parser.parse_args()
     
     label = args.label
-    setup_file = args.setup_file
+    tcoh_day = args.tcoh_day
     n = args.n
+    fmin = args.fmin
+    fmax = args.fmax
 
     # Configuration
     homedir = args.homedir.rstrip('/')
     m = 0.2
-    tcoh = 86400 * 5
-    factor = 4
+    tcoh = 86400 * tcoh_day
+    if 'no_glitch' in label:
+        factor = 4
+    else:
+        factor = 6
     dx = grid_size(m, tcoh, factor)
 
     # Load CSV file into DataFrame
     try:
-        df = pd.read_csv(os.path.join(homedir, f'data/{label}/signal_glitch_params.csv'))
+        df = pd.read_csv(os.path.join(homedir, f'data/{label}/{fmin}-{fmax}Hz/signal_glitch_params.csv'))
         logger.info("DataFrame loaded successfully")
         logger.info(f"DataFrame head:\n{df}")
     except FileNotFoundError:
-        logger.error(f"CSV file not found: {os.path.join(homedir, f'data/{label}/signal_glitch_params.csv')}")
+        logger.error(f"CSV file not found: {os.path.join(homedir, f'data/{label}/{fmin}-{fmax}Hz/signal_glitch_params.csv')}")
         return
 
     # Create output directory
-    os.makedirs(os.path.join(homedir, 'results'), exist_ok=True)
+    os.makedirs(os.path.join(homedir, 'results', f'{tcoh_day}d', label, f'{fmin}-{fmax}Hz'), exist_ok=True)
 
     # Prepare arguments for multiprocessing
-    command_args = [(i, homedir, label, setup_file, df, dx) for i in range(n)]
+    command_args = [(i, homedir, label, fmin, fmax, df, dx, tcoh_day) for i in range(n)]
 
     # Run commands in parallel
     try:

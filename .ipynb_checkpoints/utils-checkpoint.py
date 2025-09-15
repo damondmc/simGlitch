@@ -116,7 +116,7 @@ def gen_glitch_params(n, m, tstart, Tdata, freq, f1dot,
     
     return glitch_params
     
-def save_params(n, m, tstart, freq_params, amp_params, sky_params, glitch_params, label, filename='params.csv'):
+def save_params(fmin, fmax, n, m, tstart, freq_params, amp_params, sky_params, glitch_params, label, filename='params.csv'):
     """
     Save parameters to a CSV file with n*m rows, combining source parameters with glitch parameters.
     Handles cases where glitch parameters are empty.
@@ -181,10 +181,10 @@ def save_params(n, m, tstart, freq_params, amp_params, sky_params, glitch_params
             data[i, 10:12] = sky_params[i]  # alpha, delta
 
     # Save to CSV
-    savepath = os.path.join('/home/hoitim.cheung/glitch/data', label)
+    savepath = os.path.join('/home/hoitim.cheung/glitch/data', label, f'{fmin}-{fmax}Hz')
     os.makedirs(savepath, exist_ok=True)
     
-    filepath = os.path.join('/home/hoitim.cheung/glitch/data', label, filename)
+    filepath = os.path.join('/home/hoitim.cheung/glitch/data', label, f'{fmin}-{fmax}Hz', filename)
     np.savetxt(filepath, data, delimiter=',', header=','.join(headers), comments='', fmt=fmt)
 
 

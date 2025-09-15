@@ -6,3 +6,5 @@ __pycache__
 .gitignore
 out/
 data/
+results/
+metric/

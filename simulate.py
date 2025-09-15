@@ -98,6 +98,8 @@ def simulate_signal(signal_params):
         - label (str): Output directory label
         - signal_idx (int): Signal index
     """
+    fmin = signal_params['fmin']
+    fmax = signal_params['fmax']
     age = signal_params['age']
     tref = signal_params['tstart'] + 0.5 * signal_params['Tdata']
     freq_params = signal_params['freq_params']
@@ -127,8 +129,8 @@ def simulate_signal(signal_params):
     
     wf = waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm)
     
-    signal_out_dir = os.path.join('/home/hoitim.cheung/glitch/data', label, f"simCW{signal_idx}")
-    temp_dir = os.path.join('/scratch/hoitim.cheung/data', label, f"simCW{signal_idx}")
+    signal_out_dir = os.path.join('/home/hoitim.cheung/glitch/data', label, f'{fmin}-{fmax}Hz', f"simCW{signal_idx}")
+    temp_dir = os.path.join('/scratch/hoitim.cheung/data', label, f'{fmin}-{fmax}Hz', f"simCW{signal_idx}")
     
     os.makedirs(signal_out_dir, exist_ok=True)
     os.makedirs(temp_dir, exist_ok=True)
@@ -252,13 +254,16 @@ def main(params):
     freq_params_padded = np.zeros((n, 5))
     freq_params_padded[:, :freq_order+1] = freq_params
     
+    fmin, fmax = freq_ranges[0]
     # Save parameters to .cvs file
-    save_params(n, m, tstart, freq_params_padded, amp_params, sky_params, glitch_params, label, filename='signal_glitch_params.csv')
+    save_params(fmin, fmax, n, m, tstart, freq_params_padded, amp_params, sky_params, glitch_params, label, filename='signal_glitch_params.csv')
   
     
     # Create list of dictionaries for each signal
     sim_args = [
         {
+            'fmin': fmin,
+            'fmax': fmax,
             'age': age,
             'freq_params': freq_params_padded[i],
             'phi0': amp_params[i, 0],
@@ -292,7 +297,7 @@ if __name__ == "__main__":
     
     from cw_manager.target import CassA as target
     
-    freq = 450
+    freq = 100
     f1min, f1max = -freq/target.tau, 0
     f2min, f2max = 0, 7*f1min**2/freq
 
@@ -312,13 +317,13 @@ if __name__ == "__main__":
         'detector': 'H1',
         'sqrtSX': sqrtSX,
         'Tsft': 1800,
-        'label': 'with_glitch',
+        'label': 'with_glitch_goodCase',
         'age': target.tau,
         'freq_ranges': [(freq, freq), (f1min, f1max), (f2min, f2max)],
         'freq_order': 2,
         'glitch_params_ranges': {
-            'delta_f_over_f': (1e-6, 3e-6),
-            'delta_f1dot_over_f1dot': (1e-3, 1e-2),
+            'delta_f_over_f': (1e-9, 1e-8),
+            'delta_f1dot_over_f1dot': (1e-4, 1e-3),
             'Q': (0.8, 1),
             'tau': (20*86400, 20*86400)
         },
@@ -328,4 +333,62 @@ if __name__ == "__main__":
         'n_cpu':32
     }
 
+    
+    ##  First case, worst delta_f_over_f and delta_f1dot_over_f1dot and best Q range
+    
+    #    sim_params = {
+    #     'n': 32,
+    #     'm': 2,
+    #     'h0': h0,
+    #     'tstart': 1368970000,
+    #     'Tdata': 100 * 86400,
+    #     'dt_wf': 5,
+    #     'detector': 'H1',
+    #     'sqrtSX': sqrtSX,
+    #     'Tsft': 1800,
+    #     'label': 'with_glitch_goodCase',
+    #     'age': target.tau,
+    #     'freq_ranges': [(freq, freq), (f1min, f1max), (f2min, f2max)],
+    #     'freq_order': 2,
+    #     'glitch_params_ranges': {
+    #         'delta_f_over_f': (1e-6, 3e-6),       
+    #         'delta_f1dot_over_f1dot': (1e-3, 1e-2),
+    #         'Q': (0.8, 1),
+    #         'tau': (20*86400, 20*86400)
+    #     },
+    #     'alpha': target.alpha,
+    #     'delta': target.delta,
+    #     'seed': 0, 
+    #     'n_cpu':32
+    # }
+
+    
+##    Second case, best delta_f_over_f and delta_f1dot_over_f1dot and best Q range
+#     sim_params = {
+#         'n': 32,
+#         'm': 2,
+#         'h0': h0,
+#         'tstart': 1368970000,
+#         'Tdata': 100 * 86400,
+#         'dt_wf': 5,
+#         'detector': 'H1',
+#         'sqrtSX': sqrtSX,
+#         'Tsft': 1800,
+#         'label': 'with_glitch_goodCase',
+#         'age': target.tau,
+#         'freq_ranges': [(freq, freq), (f1min, f1max), (f2min, f2max)],
+#         'freq_order': 2,
+#         'glitch_params_ranges': {
+#             'delta_f_over_f': (1e-9, 1e-8),
+#             'delta_f1dot_over_f1dot': (1e-4, 1e-3),
+#             'Q': (0.8, 1),
+#             'tau': (20*86400, 20*86400)
+#         },
+#         'alpha': target.alpha,
+#         'delta': target.delta,
+#         'seed': 0, 
+#         'n_cpu':32
+#     }
+
+    
     main(sim_params)
