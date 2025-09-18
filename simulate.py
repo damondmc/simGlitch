@@ -65,7 +65,8 @@ def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm):
         if len(glitch_params_norm):
             if f1dot_eff == 0:
                 raise ValueError("Effective f1dot is zero.")
-            h0_t = h0_scale * np.sqrt(np.abs(f1dot_eff) / f_eff) 
+            #h0_t = h0_scale * np.sqrt(np.abs(f1dot_eff) / f_eff) 
+            h0_t = h0
         else:
             h0_t = h0
         
@@ -218,7 +219,7 @@ def main(params):
         raise ValueError("alpha must be in [0, 2π]")
     if delta is not None and (delta < -np.pi/2 or delta > np.pi/2):
         raise ValueError("delta must be in [-π/2, π/2]")
-    required_glitch_keys = ['delta_f_over_f', 'delta_f1dot_over_f1dot', 'Q', 'tau']
+    required_glitch_keys = ['tglitch', 'delta_f_over_f', 'delta_f1dot_over_f1dot', 'Q', 'tau']
     missing_glitch_keys = [key for key in required_glitch_keys if key not in glitch_params_ranges]
     if missing_glitch_keys:
         raise KeyError(f"Missing required glitch_params_ranges keys: {', '.join(missing_glitch_keys)}")
@@ -244,6 +245,7 @@ def main(params):
     # Generate glitch parameters
     glitch_params = gen_glitch_params(
         n, m, tstart, Tdata, freq_params[:, 0], freq_params[:, 1],
+        tglitch_range=glitch_params_ranges['tglitch'],
         delta_f_over_f_range=glitch_params_ranges['delta_f_over_f'],
         delta_f1dot_over_f1dot_range=glitch_params_ranges['delta_f1dot_over_f1dot'],
         Q_range=glitch_params_ranges['Q'],
@@ -301,6 +303,10 @@ if __name__ == "__main__":
     f1min, f1max = -freq/target.tau, 0
     f2min, f2max = 0, 7*f1min**2/freq
 
+    f1min, f1max = -0.5*freq/target.tau, -0.5*freq/target.tau
+    f2min, f2max = 0, 0 
+
+    
     depth = 50
     sqrtSX = 1e-23 
     h0 = sqrtSX/depth 
@@ -309,7 +315,7 @@ if __name__ == "__main__":
     
     sim_params = {
         'n': 32,
-        'm': 2,
+        'm': 1,
         'h0': h0,
         'tstart': 1368970000,
         'Tdata': 100 * 86400,
@@ -317,14 +323,15 @@ if __name__ == "__main__":
         'detector': 'H1',
         'sqrtSX': sqrtSX,
         'Tsft': 1800,
-        'label': 'with_glitch_goodCase',
+        'label': 'no_glitch_diffnoise',
         'age': target.tau,
         'freq_ranges': [(freq, freq), (f1min, f1max), (f2min, f2max)],
         'freq_order': 2,
         'glitch_params_ranges': {
-            'delta_f_over_f': (1e-9, 1e-8),
-            'delta_f1dot_over_f1dot': (1e-4, 1e-3),
-            'Q': (0.8, 1),
+            'tglitch': (1368970000, 1368970000 + 100*86400), 
+            'delta_f_over_f': (1e-9, 1e-9),
+            'delta_f1dot_over_f1dot': (1e-4, 1e-4),
+            'Q': (0.8, 0.8),
             'tau': (20*86400, 20*86400)
         },
         'alpha': target.alpha,

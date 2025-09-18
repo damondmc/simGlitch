@@ -79,6 +79,7 @@ def gen_frequency_params(nSample, n, freq_ranges):
 
 
 def gen_glitch_params(n, m, tstart, Tdata, freq, f1dot, 
+                     tglitch_range=(1368970000, 1368970000 + 100*86400),
                      delta_f_over_f_range=(1e-9, 1e-6), delta_f1dot_over_f1dot_range=(-1e-4, -1e-3), 
                      Q_range=(0, 1), tau_range=(10*86400, 200*86400)):
     """
@@ -91,13 +92,13 @@ def gen_glitch_params(n, m, tstart, Tdata, freq, f1dot,
     freq = np.atleast_1d(freq)
     f1dot = np.atleast_1d(f1dot)
     
-    
     for i in range(n):
         if m == 0:
             glitch_params.append([])
             continue
         
-        tglitch = np.random.uniform(tstart, tstart + Tdata, m)
+        #tglitch = np.random.uniform(tstart, tstart + Tdata, m)
+        tglitch = np.random.uniform(tglitch_range[0], tglitch_range[1], m)
         delta_f_over_f = np.random.uniform(delta_f_over_f_range[0], delta_f_over_f_range[1], m)
         delta_f = delta_f_over_f * freq[i]
         Q = np.random.uniform(Q_range[0], Q_range[1], m)

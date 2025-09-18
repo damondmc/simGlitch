@@ -19,9 +19,9 @@ def grid_size(m, T, factor=1):
     df2 = 20 * np.sqrt(7*m) / np.pi / T**3
     return [df*factor, df1*factor, df2*factor]
 
-def find_sft_file(i, label, homedir):
+def find_sft_file(i, fmin, fmax, label, homedir):
     """Find the first .sft file in the data directory for given index and label."""
-    sft_pattern = os.path.join(homedir, f'data/{label}/simCW{i}/*.sft')
+    sft_pattern = os.path.join(homedir, f'data/{label}/{fmin}-{fmax}Hz/simCW{i}/*.sft')
     sft_files = glob.glob(sft_pattern)
     if not sft_files:
         raise FileNotFoundError(f"No .sft files found in {os.path.join(homedir, f'data/{label}/simCW{i}/')}")
@@ -29,9 +29,9 @@ def find_sft_file(i, label, homedir):
 
 def run_command(args):
     """Run a single lalpulsar_Weave command."""
-    i, homedir, label, fmin, fmax, df, dx, tcoh_day = args
+    i, homedir, label, fmin, fmax, n_glitch, df, dx, tcoh_day = args
     try:
-        sft_file = find_sft_file(i, label, homedir)
+        sft_file = find_sft_file(i, fmin, fmax, label, homedir)
         command = (
             f"lalpulsar_Weave "
             f"--output-file={homedir}/results/{tcoh_day}d/{label}/{fmin}-{fmax}Hz/{label}_CW{i}.fts "
@@ -41,11 +41,11 @@ def run_command(args):
             f"--coh-max-mismatch=0.1 "
             f"--toplist-limit=1000 "
             f"--extra-statistics='coh2F_det,mean2F,coh2F_det,mean2F_det' "
-            f"--alpha={df['alpha'][i]}/0 "
-            f"--delta={df['delta'][i]}/0 "
-            f"--freq={df['f0'][i]-dx[0]}/{2*dx[0]} "
-            f"--f1dot={df['f1'][i]-dx[1]}/{2*dx[1]} "
-            f"--f2dot={df['f2'][i]-dx[2]}/{2*dx[2]}"
+            f"--alpha={df['alpha'][i*n_glitch]}/0 "
+            f"--delta={df['delta'][i*n_glitch]}/0 "
+            f"--freq={df['f0'][i*n_glitch]-dx[0]}/{2*dx[0]} "
+            f"--f1dot={df['f1'][i*n_glitch]-dx[1]}/{2*dx[1]} "
+            f"--f2dot={df['f2'][i*n_glitch]-dx[2]}/{2*dx[2]}"
         )
         print(command)
         result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
@@ -69,6 +69,8 @@ def main():
                         help="Min. frequency.")
     parser.add_argument('--fmax', type=int, default=100,
                         help="Max. frequency.")
+    parser.add_argument('--n_glitch', type=int, default=1,
+                        help="Number of glitches per signal.")
     parser.add_argument('--tcoh_day', type=int, default=5,
                         help="Coherence time in day.")
     parser.add_argument('--homedir', default='/home/hoitim.cheung/glitch/',
@@ -82,6 +84,7 @@ def main():
     n = args.n
     fmin = args.fmin
     fmax = args.fmax
+    n_glitch = args.n_glitch
 
     # Configuration
     homedir = args.homedir.rstrip('/')
@@ -90,7 +93,7 @@ def main():
     if 'no_glitch' in label:
         factor = 4
     else:
-        factor = 6
+        factor = 8
     dx = grid_size(m, tcoh, factor)
 
     # Load CSV file into DataFrame
@@ -106,7 +109,7 @@ def main():
     os.makedirs(os.path.join(homedir, 'results', f'{tcoh_day}d', label, f'{fmin}-{fmax}Hz'), exist_ok=True)
 
     # Prepare arguments for multiprocessing
-    command_args = [(i, homedir, label, fmin, fmax, df, dx, tcoh_day) for i in range(n)]
+    command_args = [(i, homedir, label, fmin, fmax, n_glitch, df, dx, tcoh_day) for i in range(n)]
 
     # Run commands in parallel
     try:

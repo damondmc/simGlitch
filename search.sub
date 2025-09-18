@@ -8,10 +8,10 @@ accounting_group = ligo.prod.o4.cw.directedisolated.semicoherent
 accounting_group_user = hoitim.cheung
 
 executable = /home/hoitim.cheung/glitch/search.py
-arguments = --label no_glitch --tcoh_day 5 --fmin 100 --fmax 100
+arguments = --label no_glitch_diffnoise --tcoh_day 5 --fmin 100 --fmax 100
 
-output = /home/hoitim.cheung/glitch/out/search5.out
-error = /home/hoitim.cheung/glitch/out/search5.err
-log = /home/hoitim.cheung/glitch/out/search5.log
+output = /home/hoitim.cheung/glitch/out/search5x.out
+error = /home/hoitim.cheung/glitch/out/search5x.err
+log = /home/hoitim.cheung/glitch/out/search5x.log
 
 queue 1 
