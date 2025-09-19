@@ -4,8 +4,8 @@ from lalpulsar import simulateCW
 import time
 import multiprocessing as mp
 from utils import *
+import argparse
 
-# Corrected waveform function
 def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm):
     """
     Generate GW waveform for a pulsar with glitches, ensuring h0 ∝ sqrt(|f1dot| / f^5).
@@ -65,8 +65,8 @@ def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm):
         if len(glitch_params_norm):
             if f1dot_eff == 0:
                 raise ValueError("Effective f1dot is zero.")
-            #h0_t = h0_scale * np.sqrt(np.abs(f1dot_eff) / f_eff) 
-            h0_t = h0
+            h0_t = h0_scale * np.sqrt(np.abs(f1dot_eff) / f_eff) 
+            #h0_t = h0
         else:
             h0_t = h0
         
@@ -147,7 +147,7 @@ def simulate_signal(signal_params):
         pass
     
     combine_sfts(fmin=fmin, fmax=fmax, fband=fband, ts=tstart, te=tstart+Tdata, output=signal_out_dir, sft_dir=temp_dir)
-
+    
 # Updated main function with strict parameter validation
 def main(params):
     """
@@ -258,7 +258,7 @@ def main(params):
     
     fmin, fmax = freq_ranges[0]
     # Save parameters to .cvs file
-    save_params(fmin, fmax, n, m, tstart, freq_params_padded, amp_params, sky_params, glitch_params, label, filename='signal_glitch_params.csv')
+    save_params(h0, sqrtSX, fmin, fmax, n, m, tstart, freq_params_padded, amp_params, sky_params, glitch_params, label, filename='signal_glitch_params.csv')
   
     
     # Create list of dictionaries for each signal
@@ -297,25 +297,38 @@ def main(params):
 # Example usage
 if __name__ == "__main__":
     
+    
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Run lalpulsar_Weave commands with multiprocessing.")
+    parser.add_argument('--t_ref', type=int, default=10,
+                        help="Number of CPU cores to use for multiprocessing (default: all available)")
+    parser.add_argument('--label', default='no_glitch',
+                        help="Label for data directory (no_glitch or with_glitch)")
+    
+    args = parser.parse_args()
+
+    
     from cw_manager.target import CassA as target
     
     freq = 100
     f1min, f1max = -freq/target.tau, 0
     f2min, f2max = 0, 7*f1min**2/freq
 
-    f1min, f1max = -0.5*freq/target.tau, -0.5*freq/target.tau
+    f1min, f1max = -freq/target.tau, -freq/target.tau
     f2min, f2max = 0, 0 
 
     
-    depth = 50
+    depth = 40
     sqrtSX = 1e-23 
     h0 = sqrtSX/depth 
+    t_ref = args.t_ref
+    label = args.label
     
     print(f"depth:{depth}, sqrtSX:{sqrtSX}, h0:{h0}")
     
     sim_params = {
         'n': 32,
-        'm': 1,
+        'm': 0,
         'h0': h0,
         'tstart': 1368970000,
         'Tdata': 100 * 86400,
@@ -323,12 +336,12 @@ if __name__ == "__main__":
         'detector': 'H1',
         'sqrtSX': sqrtSX,
         'Tsft': 1800,
-        'label': 'no_glitch_diffnoise',
+        'label': label,
         'age': target.tau,
         'freq_ranges': [(freq, freq), (f1min, f1max), (f2min, f2max)],
         'freq_order': 2,
         'glitch_params_ranges': {
-            'tglitch': (1368970000, 1368970000 + 100*86400), 
+            'tglitch': (1368970000 + 0*86400, 1368970000 + 100*86400), 
             'delta_f_over_f': (1e-9, 1e-9),
             'delta_f1dot_over_f1dot': (1e-4, 1e-4),
             'Q': (0.8, 0.8),
@@ -340,62 +353,11 @@ if __name__ == "__main__":
         'n_cpu':32
     }
 
-    
-    ##  First case, worst delta_f_over_f and delta_f1dot_over_f1dot and best Q range
-    
-    #    sim_params = {
-    #     'n': 32,
-    #     'm': 2,
-    #     'h0': h0,
-    #     'tstart': 1368970000,
-    #     'Tdata': 100 * 86400,
-    #     'dt_wf': 5,
-    #     'detector': 'H1',
-    #     'sqrtSX': sqrtSX,
-    #     'Tsft': 1800,
-    #     'label': 'with_glitch_goodCase',
-    #     'age': target.tau,
-    #     'freq_ranges': [(freq, freq), (f1min, f1max), (f2min, f2max)],
-    #     'freq_order': 2,
-    #     'glitch_params_ranges': {
-    #         'delta_f_over_f': (1e-6, 3e-6),       
-    #         'delta_f1dot_over_f1dot': (1e-3, 1e-2),
-    #         'Q': (0.8, 1),
-    #         'tau': (20*86400, 20*86400)
-    #     },
-    #     'alpha': target.alpha,
-    #     'delta': target.delta,
-    #     'seed': 0, 
-    #     'n_cpu':32
-    # }
-
-    
-##    Second case, best delta_f_over_f and delta_f1dot_over_f1dot and best Q range
-#     sim_params = {
-#         'n': 32,
-#         'm': 2,
-#         'h0': h0,
-#         'tstart': 1368970000,
-#         'Tdata': 100 * 86400,
-#         'dt_wf': 5,
-#         'detector': 'H1',
-#         'sqrtSX': sqrtSX,
-#         'Tsft': 1800,
-#         'label': 'with_glitch_goodCase',
-#         'age': target.tau,
-#         'freq_ranges': [(freq, freq), (f1min, f1max), (f2min, f2max)],
-#         'freq_order': 2,
 #         'glitch_params_ranges': {
-#             'delta_f_over_f': (1e-9, 1e-8),
-#             'delta_f1dot_over_f1dot': (1e-4, 1e-3),
-#             'Q': (0.8, 1),
-#             'tau': (20*86400, 20*86400)
+#             'delta_f_over_f': (1e-9, 3e-6),
+#             'delta_f1dot_over_f1dot': (1e-4, 1e-1),
+#             'Q': (0.1, 0.9),
+#             'tau': (20*86400, 300*86400)
 #         },
-#         'alpha': target.alpha,
-#         'delta': target.delta,
-#         'seed': 0, 
-#         'n_cpu':32
-#     }
-
     
     main(sim_params)

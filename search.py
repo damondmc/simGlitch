@@ -17,7 +17,9 @@ def grid_size(m, T, factor=1):
     df = 2 * np.sqrt(3*m) / np.pi / T
     df1 = 12 * np.sqrt(5*m) / np.pi / T**2
     df2 = 20 * np.sqrt(7*m) / np.pi / T**3
-    return [df*factor, df1*factor, df2*factor]
+    df, df1, df2 = 2e-5, 1e-10, 5e-19
+    #return [df*factor, df1*factor, df2*factor]
+    return [df, df1, df2]
 
 def find_sft_file(i, fmin, fmax, label, homedir):
     """Find the first .sft file in the data directory for given index and label."""
@@ -79,16 +81,19 @@ def main():
                         help="Number of jobs (default: 32)")
     args = parser.parse_args()
     
-    label = args.label
+    _label = args.label
     tcoh_day = args.tcoh_day
     n = args.n
     fmin = args.fmin
     fmax = args.fmax
     n_glitch = args.n_glitch
 
+#    for tref_label in [10, 30, 50, 70, 90]:
+#        label = _label + f'_tg{tref_label}'
+    label = _label
     # Configuration
     homedir = args.homedir.rstrip('/')
-    m = 0.2
+    m = 0.1
     tcoh = 86400 * tcoh_day
     if 'no_glitch' in label:
         factor = 4

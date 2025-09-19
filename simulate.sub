@@ -7,9 +7,14 @@ getenv = True
 accounting_group = ligo.prod.o4.cw.directedisolated.semicoherent
 accounting_group_user = hoitim.cheung
 
+# Define label and tcoh_day as variables
+label = no_glitch_v2
+
 executable = /home/hoitim.cheung/glitch/simulate.py
-output = /home/hoitim.cheung/glitch/out/sim.out
-error = /home/hoitim.cheung/glitch/out/sim.err
-log = /home/hoitim.cheung/glitch/out/sim.log
+arguments = --label $(label)
+
+output = /home/hoitim.cheung/glitch/out/sim_$(label).out
+error = /home/hoitim.cheung/glitch/out/sim_$(label).err
+log = /home/hoitim.cheung/glitch/out/sim_$(label).log
 
 queue 1 

@@ -7,11 +7,16 @@ getenv = True
 accounting_group = ligo.prod.o4.cw.directedisolated.semicoherent
 accounting_group_user = hoitim.cheung
 
+# Define label and tcoh_day as variables
+label = no_glitch_diffnoise_v2
+# label = with_glitch_onlytglitch_vh0_v2
+tcoh_day = 50
+
 executable = /home/hoitim.cheung/glitch/search.py
-arguments = --label no_glitch_diffnoise --tcoh_day 5 --fmin 100 --fmax 100
+arguments = --label $(label) --tcoh_day $(tcoh_day) --fmin 100 --fmax 100
 
-output = /home/hoitim.cheung/glitch/out/search5x.out
-error = /home/hoitim.cheung/glitch/out/search5x.err
-log = /home/hoitim.cheung/glitch/out/search5x.log
+output = /home/hoitim.cheung/glitch/out/search_$(label)_$(tcoh_day).out
+error = /home/hoitim.cheung/glitch/out/search_$(label)_$(tcoh_day).err
+log = /home/hoitim.cheung/glitch/out/search_$(label)_$(tcoh_day).log
 
-queue 1 
+queue 1

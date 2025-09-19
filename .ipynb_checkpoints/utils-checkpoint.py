@@ -26,9 +26,14 @@ def gen_amplitude_params(nSample, phi_range=(0, 2*np.pi), psi_range=(-np.pi/4, n
     - params (np.ndarray): Array of shape (nSample, 3) with columns [phi, psi, cosi].
     """
     #print("Generating amplitude parameters.")
-    phi_arr = np.random.uniform(0, 2*np.pi, nSample)
-    psi_arr = np.random.uniform(-np.pi/4, np.pi/4, nSample)
-    cosi_arr = np.random.uniform(-1, 1, nSample)
+    #phi_arr = np.random.uniform(0, 2*np.pi, nSample)
+    #psi_arr = np.random.uniform(-np.pi/4, np.pi/4, nSample)
+    #cosi_arr = np.random.uniform(-1, 1, nSample)
+    
+    phi_arr = np.zeros(nSample)
+    psi_arr = np.ones(nSample) * np.pi / 4
+    cosi_arr = np.ones(nSample)
+    
     return np.column_stack((phi_arr, psi_arr, cosi_arr))
 
 def gen_sky_location_params(nSample, alpha_range=(0, 2*np.pi), sinDelta_range=(-1, 1)):
@@ -117,7 +122,7 @@ def gen_glitch_params(n, m, tstart, Tdata, freq, f1dot,
     
     return glitch_params
     
-def save_params(fmin, fmax, n, m, tstart, freq_params, amp_params, sky_params, glitch_params, label, filename='params.csv'):
+def save_params(h0, sqrtSX, fmin, fmax, n, m, tstart, freq_params, amp_params, sky_params, glitch_params, label, filename='params.csv'):
     """
     Save parameters to a CSV file with n*m rows, combining source parameters with glitch parameters.
     Handles cases where glitch parameters are empty.
@@ -148,11 +153,11 @@ def save_params(fmin, fmax, n, m, tstart, freq_params, amp_params, sky_params, g
     # Check if glitch_params is empty or m == 0
     if m > 0:
         # Standard case: glitches exist
-        num_columns = 2 + 5 + 3 + 2 + 6 + 1  # n_th_signal, m_th_glitch, freq_params (5), amp_params (3), sky_params (2), glitch_params (6), tglitch_day
+        num_columns = 2 + 2 + 5 + 3 + 2 + 6 + 1  # n_th_signal, m_th_glitch, h0, sqrtSX, freq_params (5), amp_params (3), sky_params (2), glitch_params (6), tglitch_day
         data = np.zeros((n * m, num_columns))
-        headers = ['n_th_signal', 'm_th_glitch', 'f0', 'f1', 'f2', 'f3', 'f4', 'phi0', 'psi', 'cosi', 'alpha', 'delta',
+        headers = ['n_th_signal', 'm_th_glitch', 'h0', 'sqrtSX', 'f0', 'f1', 'f2', 'f3', 'f4', 'phi0', 'psi', 'cosi', 'alpha', 'delta',
                    'tglitch', 'df_p', 'df_t', 'df1_p', 'tau', 'Q', 'tglitch_day']
-        fmt = ['%d', '%d', '%.8f', '%.8e', '%.8e', '%.8e', '%.8e', '%.8f', '%.8f', '%.8f', '%.8f', '%.8f',
+        fmt = ['%d', '%d', '%.8e', '%.8e', '%.8f', '%.8e', '%.8e', '%.8e', '%.8e', '%.8f', '%.8f', '%.8f', '%.8f', '%.8f',
                '%d', '%.8e', '%.8e', '%.8e', '%.8f', '%.8f', '%.2f']
 
         # Fill in the data
@@ -161,26 +166,30 @@ def save_params(fmin, fmax, n, m, tstart, freq_params, amp_params, sky_params, g
                 row_idx = i * m + j
                 data[row_idx, 0] = i  # n-th signal
                 data[row_idx, 1] = j  # m-th glitch
-                data[row_idx, 2:7] = freq_params[i]  # f0 to f4
-                data[row_idx, 7:10] = amp_params[i]  # phi0, psi, cosi
-                data[row_idx, 10:12] = sky_params[i]  # alpha, delta
-                data[row_idx, 12:18] = glitch_params[i][j]  # tglitch, df_permanent, df_transisent, df1_permanent, tau, Q
+                data[row_idx, 2] = h0  # h0
+                data[row_idx, 3] = sqrtSX  # sqrtSX
+                data[row_idx, 4:9] = freq_params[i]  # f0 to f4
+                data[row_idx, 9:12] = amp_params[i]  # phi0, psi, cosi
+                data[row_idx, 12:14] = sky_params[i]  # alpha, delta
+                data[row_idx, 14:20] = glitch_params[i][j]  # tglitch, df_permanent, df_transisent, df1_permanent, tau, Q
                 data[row_idx, -1] = (glitch_params[i][j][0] - tstart) / 86400  # tglitch in days
     else:
         # No glitches: only include signal parameters
         num_columns = 2 + 5 + 3 + 2  # n_th_signal, m_th_glitch, freq_params (5), amp_params (3), sky_params (2)
         data = np.zeros((n, num_columns))
-        headers = ['n_th_signal', 'm_th_glitch', 'f0', 'f1', 'f2', 'f3', 'f4', 'phi0', 'psi', 'cosi', 'alpha', 'delta']
-        fmt = ['%d', '%d', '%.8f', '%.8e', '%.8e', '%.8e', '%.8e', '%.8f', '%.8f', '%.8f', '%.8f', '%.8f']
+        headers = ['n_th_signal', 'm_th_glitch', 'h0', 'sqrtSX', 'f0', 'f1', 'f2', 'f3', 'f4', 'phi0', 'psi', 'cosi', 'alpha', 'delta']
+        fmt = ['%d', '%d', '%.8e', '%.8e', '%.8f', '%.8e', '%.8e', '%.8e', '%.8e', '%.8f', '%.8f', '%.8f', '%.8f', '%.8f']
 
         # Fill in the data
         for i in range(n):
             data[i, 0] = i  # n-th signal
             data[i, 1] = 0  # m-th glitch (set to 0 as there are no glitches)
-            data[i, 2:7] = freq_params[i]  # f0 to f4
-            data[i, 7:10] = amp_params[i]  # phi0, psi, cosi
-            data[i, 10:12] = sky_params[i]  # alpha, delta
-
+            data[row_idx, 2] = h0  # h0
+            data[row_idx, 3] = sqrtSX  # sqrtSX
+            data[row_idx, 4:9] = freq_params[i]  # f0 to f4
+            data[row_idx, 9:12] = amp_params[i]  # phi0, psi, cosi
+            data[row_idx, 12:14] = sky_params[i]  # alpha, delta
+            
     # Save to CSV
     savepath = os.path.join('/home/hoitim.cheung/glitch/data', label, f'{fmin}-{fmax}Hz')
     os.makedirs(savepath, exist_ok=True)
