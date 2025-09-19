@@ -184,11 +184,11 @@ def save_params(h0, sqrtSX, fmin, fmax, n, m, tstart, freq_params, amp_params, s
         for i in range(n):
             data[i, 0] = i  # n-th signal
             data[i, 1] = 0  # m-th glitch (set to 0 as there are no glitches)
-            data[row_idx, 2] = h0  # h0
-            data[row_idx, 3] = sqrtSX  # sqrtSX
-            data[row_idx, 4:9] = freq_params[i]  # f0 to f4
-            data[row_idx, 9:12] = amp_params[i]  # phi0, psi, cosi
-            data[row_idx, 12:14] = sky_params[i]  # alpha, delta
+            data[i, 2] = h0  # h0
+            data[i, 3] = sqrtSX  # sqrtSX
+            data[i, 4:9] = freq_params[i]  # f0 to f4
+            data[i, 9:12] = amp_params[i]  # phi0, psi, cosi
+            data[i, 12:14] = sky_params[i]  # alpha, delta
             
     # Save to CSV
     savepath = os.path.join('/home/hoitim.cheung/glitch/data', label, f'{fmin}-{fmax}Hz')
