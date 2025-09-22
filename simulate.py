@@ -252,6 +252,12 @@ def main(params):
         tau_range=glitch_params_ranges['tau']
     )
     
+    
+    tglitch = np.linspace(glitch_params_ranges['tglitch'][0], glitch_params_ranges['tglitch'][1], n)
+        
+    for i in range(n):
+        glitch_params[i][0][0] = tglitch[i]
+    
     # Pad frequency parameters with zeros if freq_order < 4
     freq_params_padded = np.zeros((n, 5))
     freq_params_padded[:, :freq_order+1] = freq_params
@@ -328,7 +334,7 @@ if __name__ == "__main__":
     
     sim_params = {
         'n': 32,
-        'm': 0,
+        'm': 1,
         'h0': h0,
         'tstart': 1368970000,
         'Tdata': 100 * 86400,
@@ -342,9 +348,9 @@ if __name__ == "__main__":
         'freq_order': 2,
         'glitch_params_ranges': {
             'tglitch': (1368970000 + 0*86400, 1368970000 + 100*86400), 
-            'delta_f_over_f': (1e-9, 1e-9),
+            'delta_f_over_f': (1e-6, 1e-6),
             'delta_f1dot_over_f1dot': (1e-4, 1e-4),
-            'Q': (0.8, 0.8),
+            'Q': (0.2, 0.2),
             'tau': (20*86400, 20*86400)
         },
         'alpha': target.alpha,

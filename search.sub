@@ -8,8 +8,7 @@ accounting_group = ligo.prod.o4.cw.directedisolated.semicoherent
 accounting_group_user = hoitim.cheung
 
 # Define label and tcoh_day as variables
-label = no_glitch_diffnoise_v2
-# label = with_glitch_onlytglitch_vh0_v2
+label = with_glitch_onlytglitch_df1e-6_q0.2_tau20_v2
 tcoh_day = 50
 
 executable = /home/hoitim.cheung/glitch/search.py

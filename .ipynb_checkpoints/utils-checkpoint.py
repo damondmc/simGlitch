@@ -98,12 +98,14 @@ def gen_glitch_params(n, m, tstart, Tdata, freq, f1dot,
     f1dot = np.atleast_1d(f1dot)
     
     for i in range(n):
+        #tglitch = np.linspace(tglitch_range[0], tglitch_range[1], n)
         if m == 0:
             glitch_params.append([])
             continue
         
         #tglitch = np.random.uniform(tstart, tstart + Tdata, m)
-        tglitch = np.random.uniform(tglitch_range[0], tglitch_range[1], m)
+        #tglitch = np.random.uniform(tglitch_range[0], tglitch_range[1], m)
+        tglitch = np.linspace(tglitch_range[0], tglitch_range[1], n)
         delta_f_over_f = np.random.uniform(delta_f_over_f_range[0], delta_f_over_f_range[1], m)
         delta_f = delta_f_over_f * freq[i]
         Q = np.random.uniform(Q_range[0], Q_range[1], m)
@@ -175,7 +177,7 @@ def save_params(h0, sqrtSX, fmin, fmax, n, m, tstart, freq_params, amp_params, s
                 data[row_idx, -1] = (glitch_params[i][j][0] - tstart) / 86400  # tglitch in days
     else:
         # No glitches: only include signal parameters
-        num_columns = 2 + 5 + 3 + 2  # n_th_signal, m_th_glitch, freq_params (5), amp_params (3), sky_params (2)
+        num_columns = 2 + 2 + 5 + 3 + 2  # n_th_signal, m_th_glitch, freq_params (5), amp_params (3), sky_params (2)
         data = np.zeros((n, num_columns))
         headers = ['n_th_signal', 'm_th_glitch', 'h0', 'sqrtSX', 'f0', 'f1', 'f2', 'f3', 'f4', 'phi0', 'psi', 'cosi', 'alpha', 'delta']
         fmt = ['%d', '%d', '%.8e', '%.8e', '%.8f', '%.8e', '%.8e', '%.8e', '%.8e', '%.8f', '%.8f', '%.8f', '%.8f', '%.8f']
