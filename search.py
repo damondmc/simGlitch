@@ -48,6 +48,9 @@ def run_command(args):
             f"--freq={df['f0'][i*n_glitch]-dx[0]}/{2*dx[0]} "
             f"--f1dot={df['f1'][i*n_glitch]-dx[1]}/{2*dx[1]} "
             f"--f2dot={df['f2'][i*n_glitch]-dx[2]}/{2*dx[2]}"
+#            f"--f1dot={df['f1'][i*n_glitch]}/0 "
+#            f"--f2dot={df['f2'][i*n_glitch]}/0"
+
         )
         print(command)
         result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
