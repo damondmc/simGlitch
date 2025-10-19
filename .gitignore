@@ -8,3 +8,6 @@ out/
 data/
 results/
 metric/
+CassAsim
+*.fts
+*.sft
