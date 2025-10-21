@@ -52,22 +52,22 @@ def waveform(h0, cosi, freq, f1dot, f2dot, f3dot, f4dot, glitch_params_norm):
         for gp in glitch_params_norm:
             tglitch, df_p, df_t, df1_p, tau, _ = gp
             if dt > tglitch:
-                # delta_t = dt - tglitch
-                # dphi += df_p * delta_t # nomial freq permanent change
-                # dphi += df_t * np.exp(-delta_t / tau) * delta_t # nomial freq transisent change
-                # dphi += df1_p * 0.5 * delta_t**2
-                
-                # # Update effective frequency and f1dot
-                # f_eff += df_p + df_t * np.exp(-delta_t / tau)
-                # f1dot_eff += df1_p - df_t / tau * np.exp(-delta_t / tau)
-                
-                dphi += df_p * dt # nomial freq permanent change
-                dphi += df_t * np.exp(-dt / tau) * dt # nomial freq transisent change
-                dphi += df1_p * 0.5 * dt**2
+                delta_t = dt - tglitch
+                dphi += df_p * delta_t # nomial freq permanent change
+                dphi += df_t * tau * (1 - np.exp(-delta_t / tau)) # nomial freq transisent change
+                dphi += df1_p * 0.5 * delta_t**2
                 
                 # Update effective frequency and f1dot
-                f_eff += df_p + df_t * np.exp(-dt / tau)
-                f1dot_eff += df1_p - df_t / tau * np.exp(-dt / tau)
+                f_eff += df_p + df_t * np.exp(-delta_t / tau)
+                f1dot_eff += df1_p - df_t / tau * np.exp(-delta_t / tau)
+                
+                # dphi += df_p * dt # nomial freq permanent change
+                # dphi += df_t * np.exp(-dt / tau) * dt # nomial freq transisent change
+                # dphi += df1_p * 0.5 * dt**2
+                
+                # # Update effective frequency and f1dot
+                # f_eff += df_p + df_t * np.exp(-dt / tau)
+                # f1dot_eff += df1_p - df_t / tau * np.exp(-dt / tau)
         
         # Scale h0 based on effective f and f1dot
         if len(glitch_params_norm):
@@ -262,9 +262,10 @@ def main(params):
     
     
     tglitch = np.linspace(glitch_params_ranges['tglitch'][0], glitch_params_ranges['tglitch'][1], n)
-        
-    for i in range(n):
-        glitch_params[i][0][0] = tglitch[i]
+
+    if m:
+        for i in range(n):
+            glitch_params[i][0][0] = tglitch[i]
     
     # Pad frequency parameters with zeros if freq_order < 4
     freq_params_padded = np.zeros((n, 5))
@@ -341,11 +342,11 @@ if __name__ == "__main__":
     print(f"depth:{depth}, sqrtSX:{sqrtSX}, h0:{h0}")
     
     sim_params = {
-        'n': 32,
-        'm': 1,
+        'n': 16,
+        'm': 0,
         'h0': h0,
         'tstart': 1368970000,
-        'Tdata': 100 * 86400,
+        'Tdata': 80 * 86400,
         'dt_wf': 5,
         'detector': 'H1',
         'sqrtSX': sqrtSX,
@@ -355,16 +356,16 @@ if __name__ == "__main__":
         'freq_ranges': [(freq, freq), (f1min, f1max), (f2min, f2max)],
         'freq_order': 2,
         'glitch_params_ranges': {
-            'tglitch': (1368970000 + 0*86400, 1368970000 + 100*86400), 
+            'tglitch': (1368970000 + 0*86400, 1368970000 + 80*86400), 
             'delta_f_over_f': (1e-9, 1e-9),
-            'delta_f1dot_over_f1dot': (1e-4, 1e-4),
-            'Q': (0.8, 0.8),
+            'delta_f1dot_over_f1dot': (1e-5, 1e-5),
+            'Q': (0.9, 0.9),
             'tau': (20*86400, 20*86400)
         },
         'alpha': target.alpha,
         'delta': target.delta,
         'seed': 0, 
-        'n_cpu':32
+        'n_cpu':16
     }
 
 #         'glitch_params_ranges': {

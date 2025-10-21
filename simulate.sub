@@ -1,14 +1,14 @@
 universe = vanilla
 notification = Never
-request_memory = 32GB
-request_disk = 32GB
+request_memory = 16GB
+request_disk = 16GB
 request_cpus = 16
 getenv = True
 accounting_group = ligo.prod.o4.cw.directedisolated.semicoherent
 accounting_group_user = hoitim.cheung
 
 # Define label and tcoh_day as variables
-label = with_glitch_onlytglitch_v3
+label = no_glitch
 
 executable = /home/hoitim.cheung/glitch/simulate.py
 arguments = --label $(label)
