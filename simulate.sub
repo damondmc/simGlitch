@@ -8,7 +8,7 @@ accounting_group = ligo.prod.o4.cw.directedisolated.semicoherent
 accounting_group_user = hoitim.cheung
 
 # Define label and tcoh_day as variables
-label = no_glitch
+label = with_glitch_l
 
 executable = /home/hoitim.cheung/glitch/simulate.py
 arguments = --label $(label)

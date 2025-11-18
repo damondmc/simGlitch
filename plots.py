@@ -25,7 +25,7 @@ def plot_glitch_analysis(labels, plot_labels, durations=['5d', '10d', '20d'], n_
     """
     
     # Load parameter data
-    df = pd.read_csv(f'./data/{labels[1]}_v2/100-100Hz/signal_glitch_params.csv')
+    df = pd.read_csv(f'./data/{labels[1]}/100-100Hz/signal_glitch_params.csv')
 
     # Extract parameters
     f0 = df['f0'][::n_glitch].values
@@ -52,9 +52,9 @@ def plot_glitch_analysis(labels, plot_labels, durations=['5d', '10d', '20d'], n_
 
         # Load data
         for i in range(32):
-            d1 = fits.open(f'./results/{duration}/{labels[0]}_v2/100-100Hz/{labels[0]}_v2_CW{i}.fts')
-            d2 = fits.open(f'./results/{duration}/{labels[1]}_v2/100-100Hz/{labels[1]}_v2_CW{i}.fts')
-            d3 = fits.open(f'./results/{duration}/{labels[2]}_v2/100-100Hz/{labels[2]}_v2_CW{i}.fts')
+            d1 = fits.open(f'./results/{duration}/{labels[0]}/100-100Hz/{labels[0]}_CW{i}.fts')
+            d2 = fits.open(f'./results/{duration}/{labels[1]}/100-100Hz/{labels[1]}_CW{i}.fts')
+            d3 = fits.open(f'./results/{duration}/{labels[2]}/100-100Hz/{labels[2]}_CW{i}.fts')
 
             a[i] = d1[1].data['mean2F'][0]
             b[i] = d2[1].data['mean2F'][0]
@@ -159,8 +159,8 @@ def plot_glitch_ratio_analysis(labels, plot_labels, durations=['5d', '10d', '20d
 
         # Load data
         for i in range(32):
-            d1 = fits.open(f'./results/{duration}/{labels[0]}_v2/100-100Hz/{labels[0]}_v2_CW{i}.fts')
-            d2 = fits.open(f'./results/{duration}/{labels[1]}_v2/100-100Hz/{labels[1]}_v2_CW{i}.fts')
+            d1 = fits.open(f'./results/{duration}/{labels[0]}/100-100Hz/{labels[0]}_CW{i}.fts')
+            d2 = fits.open(f'./results/{duration}/{labels[1]}/100-100Hz/{labels[1]}_CW{i}.fts')
             
             a[i] = d1[1].data['mean2F'][0]
             b[i] = d2[1].data['mean2F'][0]
@@ -241,7 +241,7 @@ def plot_bias(labels, plot_labels, durations=['5d', '10d', '20d', '50d'], n_glit
     """
     
     # Load parameter data
-    df = pd.read_csv(f'./data/{labels[1]}_v2/100-100Hz/signal_glitch_params.csv')
+    df = pd.read_csv(f'./data/{labels[1]}/100-100Hz/signal_glitch_params.csv')
 
     # Extract parameters
     f0 = df['f0'][::n_glitch].values
@@ -264,9 +264,9 @@ def plot_bias(labels, plot_labels, durations=['5d', '10d', '20d', '50d'], n_glit
 
         # Load data
         for i in range(32):
-            d1 = fits.open(f'./results/{duration}/{labels[0]}_v2/100-100Hz/{labels[0]}_v2_CW{i}.fts')
-            d2 = fits.open(f'./results/{duration}/{labels[1]}_v2/100-100Hz/{labels[1]}_v2_CW{i}.fts')
-            d3 = fits.open(f'./results/{duration}/{labels[2]}_v2/100-100Hz/{labels[2]}_v2_CW{i}.fts')
+            d1 = fits.open(f'./results/{duration}/{labels[0]}/100-100Hz/{labels[0]}_CW{i}.fts')
+            d2 = fits.open(f'./results/{duration}/{labels[1]}/100-100Hz/{labels[1]}_CW{i}.fts')
+            d3 = fits.open(f'./results/{duration}/{labels[2]}/100-100Hz/{labels[2]}_CW{i}.fts')
 
             f0_list[i, 0] = d1[1].data['freq'][0]
             f1_list[i, 0] = d1[1].data['f1dot'][0]
@@ -323,7 +323,7 @@ def plot_bias_ab(labels, plot_labels, durations=['5d', '10d', '20d', '50d'], n_g
     """
     
     # Load parameter data
-    df = pd.read_csv(f'./data/{labels[1]}_v2/100-100Hz/signal_glitch_params.csv')
+    df = pd.read_csv(f'./data/{labels[1]}/100-100Hz/signal_glitch_params.csv')
 
     # Extract parameters
     f0 = df['f0'][::n_glitch].values
@@ -346,8 +346,8 @@ def plot_bias_ab(labels, plot_labels, durations=['5d', '10d', '20d', '50d'], n_g
 
         # Load data
         for i in range(32):
-            d1 = fits.open(f'./results/{duration}/{labels[0]}_v2/100-100Hz/{labels[0]}_v2_CW{i}.fts')
-            d2 = fits.open(f'./results/{duration}/{labels[1]}_v2/100-100Hz/{labels[1]}_v2_CW{i}.fts')
+            d1 = fits.open(f'./results/{duration}/{labels[0]}/100-100Hz/{labels[0]}_CW{i}.fts')
+            d2 = fits.open(f'./results/{duration}/{labels[1]}/100-100Hz/{labels[1]}_CW{i}.fts')
 
             f0_list[i, 0] = d1[1].data['freq'][0]
             f1_list[i, 0] = d1[1].data['f1dot'][0]

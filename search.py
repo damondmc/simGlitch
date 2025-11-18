@@ -31,12 +31,12 @@ def find_sft_file(i, fmin, fmax, label, homedir):
 
 def run_command(args):
     """Run a single lalpulsar_Weave command."""
-    i, homedir, label, fmin, fmax, n_glitch, df, dx, tcoh_day = args
+    i, homedir, res_dir, label, fmin, fmax, n_glitch, df, dx, tcoh_day = args
     try:
         sft_file = find_sft_file(i, fmin, fmax, label, homedir)
         command = (
             f"lalpulsar_Weave "
-            f"--output-file={homedir}/results/{tcoh_day}d/{label}/{fmin}-{fmax}Hz/{label}_CW{i}.fts "
+            f"--output-file={homedir}/{res_dir}/{tcoh_day}d/{label}/{fmin}-{fmax}Hz/{label}_CW{i}.fts "
             f"--sft-files={sft_file} "
             f"--setup-file={homedir}/metric/metric_{tcoh_day}d.fts "
             f"--semi-max-mismatch=0.2 "
@@ -46,10 +46,11 @@ def run_command(args):
             f"--alpha={df['alpha'][i*n_glitch]}/0 "
             f"--delta={df['delta'][i*n_glitch]}/0 "
             f"--freq={df['f0'][i*n_glitch]-dx[0]}/{2*dx[0]} "
-            f"--f1dot={df['f1'][i*n_glitch]-dx[1]}/{2*dx[1]} "
-            f"--f2dot={df['f2'][i*n_glitch]-dx[2]}/{2*dx[2]}"
-#            f"--f1dot={df['f1'][i*n_glitch]}/0 "
-#            f"--f2dot={df['f2'][i*n_glitch]}/0"
+#            f"--f1dot={df['f1'][i*n_glitch]-dx[1]}/{2*dx[1]} "
+#            f"--f2dot={df['f2'][i*n_glitch]-dx[2]}/{2*dx[2]}"
+#            f"--freq={df['f0'][i*n_glitch]}/0 "
+            f"--f1dot={df['f1'][i*n_glitch]}/0 "
+            f"--f2dot={df['f2'][i*n_glitch]}/0"
 
         )
         print(command)
@@ -80,8 +81,10 @@ def main():
                         help="Coherence time in day.")
     parser.add_argument('--homedir', default='/home/hoitim.cheung/glitch/',
                         help="Base directory path (default: /home/hoitim.cheung/glitch/)")
-    parser.add_argument('--n', type=int, default=32,
-                        help="Number of jobs (default: 32)")
+    parser.add_argument('--res_dir', default='results',
+                       help="Result directory path (default: results)")
+    parser.add_argument('--n', type=int, default=16,
+                        help="Number of jobs (default: 16)")
     args = parser.parse_args()
     
     _label = args.label
@@ -96,10 +99,11 @@ def main():
     label = _label
     # Configuration
     homedir = args.homedir.rstrip('/')
+    res_dir = args.res_dir
     m = 0.1
     tcoh = 86400 * tcoh_day
     if 'no_glitch' in label:
-        factor = 4
+        factor = 8
     else:
         factor = 8
     dx = grid_size(m, tcoh, factor)
@@ -114,10 +118,10 @@ def main():
         return
 
     # Create output directory
-    os.makedirs(os.path.join(homedir, 'results', f'{tcoh_day}d', label, f'{fmin}-{fmax}Hz'), exist_ok=True)
+    os.makedirs(os.path.join(homedir, res_dir, f'{tcoh_day}d', label, f'{fmin}-{fmax}Hz'), exist_ok=True)
 
     # Prepare arguments for multiprocessing
-    command_args = [(i, homedir, label, fmin, fmax, n_glitch, df, dx, tcoh_day) for i in range(n)]
+    command_args = [(i, homedir, res_dir, label, fmin, fmax, n_glitch, df, dx, tcoh_day) for i in range(n)]
 
     # Run commands in parallel
     try:

@@ -1,13 +1,8 @@
+data/
+metric/
 others/
-sfts/
-no_glitch/
+out/
 .ipynb_checkpoints
 __pycache__
 .gitignore
-out/
-data/
-results/
-metric/
-CassAsim
-*.fts
-*.sft
+results*
