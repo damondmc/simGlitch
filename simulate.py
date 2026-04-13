@@ -173,7 +173,7 @@ def simulate_signal(signal_params):
             print(f"[Signal {signal_idx}] {ifo}: Resizing bands and adding SFTs...", flush=True)
             lp.SFTVectorResizeBand(data_sfts, fmin, fband)
             lp.SFTVectorResizeBand(sim_sfts, fmin, fband)
-            lp.SFTVectorAdd(data_sfts, sim_sfts, fmin, fband)
+            lp.SFTVectorAdd(data_sfts, sim_sfts)
         else:
             print(f"[Signal {signal_idx}] {ifo}: Resizing sim band...", flush=True)
             lp.SFTVectorResizeBand(sim_sfts, fmin, fband)

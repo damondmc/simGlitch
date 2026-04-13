@@ -137,7 +137,7 @@ def save_params(n, m, freq_params, amp_params, sky_params, glitch_params, filepa
     # Append new relative glitch-specific headers and formats (6 columns)
     if m > 0:
         headers.extend(['tglitch', 'dnu_nu', 'dnu1_nu1', 'Q', 'tau'])
-        fmt.extend(['%d', '%.8e', '%.8e', '%.8f', '%.8f'])
+        fmt.extend(['%.8f', '%.8e', '%.8e', '%.8f', '%.8f'])
 
     data = []
     

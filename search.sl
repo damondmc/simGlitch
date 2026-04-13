@@ -9,12 +9,12 @@
 #SBATCH --time=02:00:00
 #SBATCH --account=kriles0
 #SBATCH --partition=standard
-#SBATCH --output=/scratch/kriles_root/kriles0/damoncht/cwglitch/out/search4.out
+#SBATCH --output=/scratch/kriles_root/kriles0/damoncht/cwglitch/out/search_dnu1_gauss.out
 
 source /home/damoncht/miniconda3/etc/profile.d/conda.sh
 
 conda activate lalsuite-dev
 
-python search.py --data_label wg_dnu_nu_1e-6_dnu1_nu1_1e-3_q_0.7 --result_label wg_dnu_nu_1e-6_dnu1_nu1_1e-3_q_0.7_f0f1 --df_grid 5e-4 5e-10 0 --cpus 16
+python search.py --data_label wg_dnu1_nu1_1e-2_gaussian_gap --result_label wg_dnu1_nu1_1e-2_gaussian_gap_f0f1 --df_grid 5e-4 5e-10 0 --cpus 16
 
 echo "Search job finished"
